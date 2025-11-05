@@ -191,6 +191,12 @@ Route::prefix('v1')->name('v1.')->group(static function (): void {
     });
 });
 
+// Webhook routes (outside v1 prefix, no authentication)
+Route::prefix('webhooks')->name('webhooks.')->group(static function (): void {
+    Route::post('/stripe', [\App\Http\Controllers\Webhooks\StripeWebhookController::class, 'handle'])->name('stripe');
+    Route::post('/paypal', [\App\Http\Controllers\Webhooks\PayPalWebhookController::class, 'handle'])->name('paypal');
+});
+
 /**
  * Fallback routes, to prevent a rendered HTML page in /api/* routes
  * The / route is also included since the fallback is not triggered on the root route
