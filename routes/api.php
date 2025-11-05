@@ -45,6 +45,7 @@ Route::prefix('v1')->name('v1.')->group(static function (): void {
     Route::middleware([
         'auth:api',
         'verified',
+        'throttle.api:free', // Rate limiting - default to 'free' tier (100 req/min)
     ])->group(static function (): void {
         // Organization routes
         Route::name('organizations.')->group(static function (): void {

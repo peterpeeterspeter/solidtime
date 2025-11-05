@@ -74,6 +74,7 @@ class Kernel extends HttpKernel
         'precognitive' => \Illuminate\Foundation\Http\Middleware\HandlePrecognitiveRequests::class,
         'signed' => \App\Http\Middleware\ValidateSignature::class,
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
+        'throttle.api' => \App\Http\Middleware\ThrottleApiRequests::class,
         'verified' => \App\Http\Middleware\EnsureEmailIsVerified::class,
         'check-organization-blocked' => CheckOrganizationBlocked::class,
     ];
