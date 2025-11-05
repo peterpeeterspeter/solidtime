@@ -1,24 +1,59 @@
-# solidtime - The modern Open-Source Time Tracker
+# Timeclocker - EU Time Tracking for Freelancers & Teams
 
 [![GitHub License](https://img.shields.io/github/license/solidtime-io/solidtime?style=flat-square)](https://github.com/solidtime-io/solidtime/blob/main/LICENSE.md)
 [![Codecov](https://img.shields.io/codecov/c/github/solidtime-io/solidtime?style=flat-square&logo=codecov)](https://codecov.io/gh/solidtime-io/solidtime)
 ![GitHub Actions Unit Tests Status](https://img.shields.io/github/actions/workflow/status/solidtime-io/solidtime/phpunit.yml?style=flat-square)
 ![PHPStan badge](https://img.shields.io/badge/PHPStan-Level_7-blue?style=flat-square&color=blue)
 
-![Screenshot of the solidtime application with header: solidtime - The modern Open-Source Time Tracker](docs/solidtime-banner.png "solidtime Banner")
+**Timeclocker** is a modern, privacy-first time tracking platform built specifically for EU-based freelancers and small teams. Forked from [solidtime](https://github.com/solidtime-io/solidtime), Timeclocker emphasizes **GDPR compliance**, **EU data residency**, and **instant invoicing** while maintaining the speed and simplicity you expect from modern productivity tools.
 
-solidtime is a modern open-source time tracking application for Freelancers and Agencies.
+## Why Timeclocker?
+
+- ⚡ **One-Click Tracking** - Start/stop timers instantly with keyboard shortcuts
+- 🇪🇺 **EU Data Centers** - All data stored exclusively in European data centers
+- 🔒 **GDPR-First** - Full compliance, data export/delete on demand
+- 🧾 **Instant Invoicing** - Generate branded PDF invoices from tracked time
+- 🌍 **Multi-language** - English, German, Dutch, French support
+- 🔓 **Open Source** - AGPL-3.0 licensed, transparent and auditable
 
 ## Features
 
- - Time tracking: Track your time with a modern and easy-to-use interface
- - Projects: Create and manage projects and assign project members
- - Tasks: Create and manage tasks and assign tasks to projects
- - Clients: Create and manage clients and assign clients to projects
- - Billable rates: Set billable rates for projects, project members, organization members and organizations 
- - Multiple organizations: Create and manage multiple organizations with one account
- - Roles and permissions: Create and manage organizations
- - Import: Import your time tracking data from other time tracking applications (Supported: Toggl, Clockify, Timeentry CSV)
+### Core Time Tracking
+- ⏱️ **Quick Start/Stop** - One-click timer with optional project/task selection
+- ⌨️ **Keyboard Shortcuts** - Full keyboard navigation for power users
+- 📝 **Manual Entry** - Add or adjust hours for any timeframe
+- 💰 **Billable Tracking** - Mark entries as billable/non-billable with custom rates
+
+### Invoicing & Billing
+- 🧾 **Invoice Generator** - Create professional PDF invoices from tracked time
+- 🎨 **Branded Invoices** - Customize with your logo and branding
+- 📊 **Invoice Status** - Track sent/paid status per invoice
+- 📤 **Multiple Export Formats** - PDF, CSV, and shareable links
+
+### Team Collaboration
+- 👥 **Team Management** - Invite members, set roles, manage permissions
+- ✅ **Timesheet Approval** - Admin review and approve team entries
+- 📈 **Organization Dashboard** - Real-time stats and team analytics
+- 🔐 **Role-Based Access** - Owner, Admin, Editor, Viewer roles
+
+### Privacy & Compliance
+- 🔒 **GDPR Compliance** - Full data protection regulation compliance
+- 🇪🇺 **EU Data Residency** - All data stored in European data centers
+- 📥 **Data Export** - One-click export of all your data
+- 🗑️ **Data Deletion** - Complete data removal on demand
+- 🔍 **Audit Logging** - Full change history and transparency
+
+### Integrations & Import
+- 📥 **Import from Competitors** - Toggl, Clockify, Harvest, CSV
+- 📅 **Calendar Sync** - Google Calendar, iCal integration
+- 🔗 **API Access** - RESTful API with OAuth 2.0
+- 🔌 **Zapier Ready** - Automation and workflow integration
+
+### Reporting & Analytics
+- 📊 **Detailed Reports** - Hours by client, project, team, period
+- 📈 **Visual Dashboards** - Charts and graphs for insights
+- 💼 **Billability Tracking** - Monitor billable vs non-billable time
+- 📤 **Export Options** - PDF, Excel, public report links
 
 ## Self Hosting
 
