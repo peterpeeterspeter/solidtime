@@ -9,139 +9,116 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
-/**
- * WebhookDelivery Model
- *
- * Represents a single delivery attempt for a webhook event.
- *
- * @property string $id
- * @property string $webhook_id
- * @property string $event_type
- * @property array<string, mixed> $payload
- * @property int $attempt
- * @property int|null $response_status
- * @property string|null $response_body
- * @property string|null $error_message
- * @property Carbon|null $delivered_at
- * @property Carbon $created_at
- * @property-read Webhook $webhook
- */
 class WebhookDelivery extends Model
 {
     use HasFactory;
     use HasUuids;
 
-    /**
-     * Indicates if the model should be timestamped.
-     *
-     * We only use created_at (no updated_at for immutable delivery logs).
-     *
-     * @var bool
-     */
-    public const UPDATED_AT = null;
-
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'webhook_id',
         'event_type',
         'payload',
-        'attempt',
-        'response_status',
+        'delivery_id',
+        'status',
+        'http_status_code',
         'response_body',
         'error_message',
-        'delivered_at',
+        'attempted_at',
+        'completed_at',
+        'duration_ms',
+        'attempt_number',
+        'max_attempts',
+        'next_retry_at',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'payload' => 'array',
-        'attempt' => 'integer',
-        'response_status' => 'integer',
-        'delivered_at' => 'datetime',
-        'created_at' => 'datetime',
+        'http_status_code' => 'integer',
+        'attempted_at' => 'datetime',
+        'completed_at' => 'datetime',
+        'duration_ms' => 'integer',
+        'attempt_number' => 'integer',
+        'max_attempts' => 'integer',
+        'next_retry_at' => 'datetime',
     ];
 
-    /**
-     * Get the webhook that owns this delivery.
-     */
+    public static function generateDeliveryId(): string
+    {
+        return 'del_' . Str::random(24);
+    }
+
+    public function isSuccess(): bool
+    {
+        return $this->status === 'success';
+    }
+
+    public function canRetry(): bool
+    {
+        return $this->status === 'failed' 
+            && $this->attempt_number < $this->max_attempts
+            && $this->next_retry_at
+            && $this->next_retry_at->isPast();
+    }
+
+    public function markAsSuccess(int $httpStatus, ?string $responseBody = null, int $durationMs = 0): void
+    {
+        $this->update([
+            'status' => 'success',
+            'http_status_code' => $httpStatus,
+            'response_body' => $responseBody,
+            'duration_ms' => $durationMs,
+            'completed_at' => now(),
+            'error_message' => null,
+        ]);
+    }
+
+    public function markAsFailed(string $error, ?int $httpStatus = null, ?string $responseBody = null, int $durationMs = 0): void
+    {
+        $nextRetryAt = null;
+        if ($this->attempt_number < $this->max_attempts) {
+            $backoffMinutes = pow(2, $this->attempt_number) * 5;
+            $nextRetryAt = now()->addMinutes($backoffMinutes);
+        }
+
+        $this->update([
+            'status' => $nextRetryAt ? 'retrying' : 'failed',
+            'http_status_code' => $httpStatus,
+            'response_body' => $responseBody,
+            'error_message' => $error,
+            'duration_ms' => $durationMs,
+            'completed_at' => now(),
+            'next_retry_at' => $nextRetryAt,
+        ]);
+    }
+
+    public function incrementAttempt(): void
+    {
+        $this->increment('attempt_number');
+        $this->update([
+            'attempted_at' => now(),
+            'status' => 'pending',
+        ]);
+    }
+
     public function webhook(): BelongsTo
     {
         return $this->belongsTo(Webhook::class);
     }
 
-    /**
-     * Check if delivery was successful.
-     */
-    public function wasSuccessful(): bool
+    public function scopePending($query)
     {
-        return $this->response_status !== null
-            && $this->response_status >= 200
-            && $this->response_status < 300;
+        return $query->where('status', 'pending');
     }
 
-    /**
-     * Check if delivery failed.
-     */
-    public function failed(): bool
+    public function scopeRetryable($query)
     {
-        return ! $this->wasSuccessful();
+        return $query->where('status', 'retrying')
+            ->where('next_retry_at', '<=', now())
+            ->where('attempt_number', '<', 'max_attempts');
     }
 
-    /**
-     * Check if this is the final retry attempt.
-     */
-    public function isFinalAttempt(): bool
-    {
-        $maxAttempts = config('rate-limiting.webhooks.max_retries', 5);
-
-        return $this->attempt >= $maxAttempts;
-    }
-
-    /**
-     * Get retry delay in seconds for next attempt.
-     */
-    public function getRetryDelaySeconds(): int
-    {
-        $retryDelays = config('rate-limiting.webhooks.retry_delay_seconds', [2, 4, 8, 16, 32]);
-
-        // Use attempt - 1 as array index (attempt 1 = index 0)
-        $index = min($this->attempt, count($retryDelays)) - 1;
-
-        return $retryDelays[$index] ?? end($retryDelays);
-    }
-
-    /**
-     * Scope to filter successful deliveries.
-     */
-    public function scopeSuccessful($query)
-    {
-        return $query->whereBetween('response_status', [200, 299]);
-    }
-
-    /**
-     * Scope to filter failed deliveries.
-     */
-    public function scopeFailed($query)
-    {
-        return $query->where(function ($q) {
-            $q->whereNull('response_status')
-                ->orWhere('response_status', '<', 200)
-                ->orWhere('response_status', '>=', 300);
-        });
-    }
-
-    /**
-     * Scope to filter by event type.
-     */
     public function scopeForEvent($query, string $eventType)
     {
         return $query->where('event_type', $eventType);

@@ -4,181 +4,191 @@ declare(strict_types=1);
 
 namespace App\Models;
 
+use Database\Factories\WebhookFactory;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 
-/**
- * Webhook Model
- *
- * Represents a webhook subscription that receives real-time event notifications.
- *
- * @property string $id
- * @property string $user_id
- * @property string $url
- * @property string $secret
- * @property array<int, string> $events
- * @property bool $is_active
- * @property Carbon|null $last_delivery_at
- * @property int $delivery_success_count
- * @property int $delivery_failure_count
- * @property Carbon $created_at
- * @property Carbon $updated_at
- * @property-read User $user
- * @property-read \Illuminate\Database\Eloquent\Collection<int, WebhookDelivery> $deliveries
- */
 class Webhook extends Model
 {
     use HasFactory;
     use HasUuids;
+    use SoftDeletes;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'user_id',
+        'organization_id',
+        'name',
+        'description',
         'url',
         'secret',
         'events',
+        'filters',
         'is_active',
-        'last_delivery_at',
-        'delivery_success_count',
-        'delivery_failure_count',
+        'failure_count',
+        'last_triggered_at',
+        'last_success_at',
+        'last_failure_at',
+        'last_error',
+        'verification_status',
+        'verified_at',
     ];
 
-    /**
-     * The attributes that should be cast.
-     *
-     * @var array<string, string>
-     */
     protected $casts = [
         'events' => 'array',
+        'filters' => 'array',
         'is_active' => 'boolean',
-        'last_delivery_at' => 'datetime',
-        'delivery_success_count' => 'integer',
-        'delivery_failure_count' => 'integer',
+        'failure_count' => 'integer',
+        'last_triggered_at' => 'datetime',
+        'last_success_at' => 'datetime',
+        'last_failure_at' => 'datetime',
+        'verified_at' => 'datetime',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var array<int, string>
-     */
     protected $hidden = [
-        'secret', // Never expose webhook secret in API responses
+        'secret',
     ];
 
-    /**
-     * Available webhook events
-     *
-     * @var array<int, string>
-     */
-    public const AVAILABLE_EVENTS = [
-        // Time Tracking Events
-        'time_entry.created',
-        'time_entry.updated',
-        'time_entry.deleted',
+    /** Available webhook event types */
+    public const EVENTS = [
+        // Time entries
+        'time_entry.started' => 'Time entry started',
+        'time_entry.stopped' => 'Time entry stopped',
+        'time_entry.created' => 'Time entry created',
+        'time_entry.updated' => 'Time entry updated',
+        'time_entry.deleted' => 'Time entry deleted',
 
-        // Project Events
-        'project.created',
-        'project.updated',
-        'project.archived',
+        // Focus sessions
+        'focus_session.detected' => 'Focus session detected',
+        'focus_session.completed' => 'Focus session completed',
 
-        // Invoice Events
-        'invoice.created',
-        'invoice.sent',
-        'invoice.paid',
-        'invoice.overdue',
+        // Projects
+        'project.created' => 'Project created',
+        'project.updated' => 'Project updated',
+        'project.deleted' => 'Project deleted',
 
-        // Payment Events
-        'payment.received',
-        'payment.refunded',
-        'payment.failed',
+        // Tasks
+        'task.created' => 'Task created',
+        'task.updated' => 'Task updated',
+        'task.deleted' => 'Task deleted',
+        'task.completed' => 'Task completed',
 
-        // Team Events
-        'member.added',
-        'member.removed',
-        'member.role_changed',
+        // Team
+        'member.added' => 'Team member added',
+        'member.removed' => 'Team member removed',
+
+        // Reports
+        'report.generated' => 'Report generated',
+        'timesheet.exported' => 'Timesheet exported',
+
+        // Invoices
+        'invoice.created' => 'Invoice created',
+        'invoice.sent' => 'Invoice sent',
+        'invoice.paid' => 'Invoice marked as paid',
     ];
 
-    /**
-     * Get the user that owns the webhook.
-     */
+    public static function generateSecret(): string
+    {
+        return 'whsec_' . Str::random(48);
+    }
+
+    public function isSubscribedTo(string $eventType): bool
+    {
+        return in_array($eventType, $this->events, true) || in_array('*', $this->events, true);
+    }
+
+    public function isHealthy(): bool
+    {
+        return $this->is_active && $this->failure_count < 10;
+    }
+
+    public function recordSuccess(): void
+    {
+        $this->update([
+            'last_triggered_at' => now(),
+            'last_success_at' => now(),
+            'failure_count' => 0,
+            'last_error' => null,
+        ]);
+    }
+
+    public function recordFailure(string $error): void
+    {
+        $this->increment('failure_count');
+        $this->update([
+            'last_triggered_at' => now(),
+            'last_failure_at' => now(),
+            'last_error' => $error,
+        ]);
+
+        if ($this->failure_count >= 10) {
+            $this->update(['is_active' => false]);
+        }
+    }
+
+    public function markVerified(): void
+    {
+        $this->update([
+            'verification_status' => 'verified',
+            'verified_at' => now(),
+        ]);
+    }
+
+    public function disable(): void
+    {
+        $this->update(['is_active' => false]);
+    }
+
+    public function enable(): void
+    {
+        $this->update(['is_active' => true, 'failure_count' => 0]);
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
     }
 
-    /**
-     * Get all deliveries for this webhook.
-     */
+    public function organization(): BelongsTo
+    {
+        return $this->belongsTo(Organization::class);
+    }
+
     public function deliveries(): HasMany
     {
         return $this->hasMany(WebhookDelivery::class);
     }
 
-    /**
-     * Get recent deliveries (last 100).
-     */
-    public function recentDeliveries(): HasMany
+    public function recentDeliveries()
     {
-        return $this->deliveries()
-            ->orderBy('created_at', 'desc')
-            ->limit(100);
+        return $this->deliveries()->latest()->limit(100);
     }
 
-    /**
-     * Check if this webhook is subscribed to a specific event.
-     */
-    public function isSubscribedTo(string $event): bool
+    public function scopeActive($query)
     {
-        return in_array($event, $this->events, true);
+        return $query->where('is_active', true);
     }
 
-    /**
-     * Calculate delivery success rate.
-     */
-    public function getSuccessRateAttribute(): float
+    public function scopeHealthy($query)
     {
-        $total = $this->delivery_success_count + $this->delivery_failure_count;
-
-        if ($total === 0) {
-            return 0.0;
-        }
-
-        return round(($this->delivery_success_count / $total) * 100, 2);
+        return $query->where('is_active', true)->where('failure_count', '<', 10);
     }
 
-    /**
-     * Increment success counter.
-     */
-    public function incrementSuccessCount(): void
+    public function scopeForOrganization($query, string $organizationId)
     {
-        $this->increment('delivery_success_count');
-        $this->update(['last_delivery_at' => now()]);
+        return $query->where('organization_id', $organizationId);
     }
 
-    /**
-     * Increment failure counter.
-     */
-    public function incrementFailureCount(): void
+    public function scopeSubscribedTo($query, string $eventType)
     {
-        $this->increment('delivery_failure_count');
-        $this->update(['last_delivery_at' => now()]);
-    }
-
-    /**
-     * Disable webhook after too many failures.
-     */
-    public function disableIfTooManyFailures(int $threshold = 50): void
-    {
-        if ($this->delivery_failure_count >= $threshold) {
-            $this->update(['is_active' => false]);
-        }
+        return $query->where(function ($q) use ($eventType) {
+            $q->whereJsonContains('events', $eventType)
+                ->orWhereJsonContains('events', '*');
+        });
     }
 }
