@@ -12,6 +12,7 @@ import type { Session } from '@/types/jetstream';
 import ApiTokensForm from '@/Pages/Profile/Partials/ApiTokensForm.vue';
 import ThemeForm from '@/Pages/Profile/Partials/ThemeForm.vue';
 import PrivacyDashboardForm from '@/Pages/Profile/Partials/PrivacyDashboardForm.vue';
+import LanguageForm from '@/Pages/Profile/Partials/LanguageForm.vue';
 
 defineProps<{
     confirmsTwoFactorAuthentication: boolean;
@@ -47,6 +48,12 @@ const page = usePage<{
 
                 <div>
                     <ThemeForm />
+
+                    <SectionBorder />
+                </div>
+
+                <div>
+                    <LanguageForm class="mt-10 sm:mt-0" />
 
                     <SectionBorder />
                 </div>
