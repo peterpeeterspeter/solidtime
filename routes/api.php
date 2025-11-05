@@ -27,6 +27,7 @@ use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\UserMembershipController;
 use App\Http\Controllers\Api\V1\UserPrivacySettingController;
 use App\Http\Controllers\Api\V1\UserTimeEntryController;
+use App\Http\Controllers\Api\V1\WebhookController;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -89,6 +90,18 @@ Route::prefix('v1')->name('v1.')->group(static function (): void {
             Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('store');
             Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('destroy');
             Route::get('/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey'])->name('vapid-public-key');
+        });
+
+        // Webhook routes
+        Route::name('webhooks.')->group(static function (): void {
+            Route::get('/webhooks', [WebhookController::class, 'index'])->name('index');
+            Route::get('/webhooks/available-events', [WebhookController::class, 'availableEvents'])->name('available-events');
+            Route::get('/webhooks/{webhook}', [WebhookController::class, 'show'])->name('show');
+            Route::post('/webhooks', [WebhookController::class, 'store'])->name('store');
+            Route::put('/webhooks/{webhook}', [WebhookController::class, 'update'])->name('update');
+            Route::delete('/webhooks/{webhook}', [WebhookController::class, 'destroy'])->name('destroy');
+            Route::get('/webhooks/{webhook}/deliveries', [WebhookController::class, 'deliveries'])->name('deliveries');
+            Route::post('/webhooks/{webhook}/test', [WebhookController::class, 'test'])->name('test');
         });
 
         // User Member routes
