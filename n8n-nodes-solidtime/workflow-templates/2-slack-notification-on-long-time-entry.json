@@ -1,0 +1,76 @@
+{
+  "name": "Send Slack Alert on Long Time Entry",
+  "nodes": [
+    {
+      "parameters": {
+        "organizationId": "YOUR_ORG_ID",
+        "events": ["time_entry.stopped"],
+        "webhookName": "Long Time Entry Alert"
+      },
+      "id": "1",
+      "name": "On Time Entry Stopped",
+      "type": "n8n-nodes-solidtime.solidtimeTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "auto-generated",
+      "credentials": {
+        "solidtimeApi": {
+          "id": "1",
+          "name": "Solidtime account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.data.duration }}",
+              "operation": "larger",
+              "value2": 28800
+            }
+          ]
+        }
+      },
+      "id": "2",
+      "name": "Check if > 8 hours",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [470, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#time-tracking",
+        "text": "=⏰ Long time entry detected!\n\n*User:* {{ $json.data.user.name }}\n*Duration:* {{ ($json.data.duration / 3600).toFixed(2) }} hours\n*Description:* {{ $json.data.description }}\n*Project:* {{ $json.data.project?.name || 'No project' }}\n\nPlease review and ensure this is accurate.",
+        "attachments": []
+      },
+      "id": "3",
+      "name": "Send Slack Message",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [690, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "1",
+          "name": "Slack account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On Time Entry Stopped": {
+      "main": [[{ "node": "Check if > 8 hours", "type": "main", "index": 0 }]]
+    },
+    "Check if > 8 hours": {
+      "main": [[{ "node": "Send Slack Message", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1",
+  "id": "solidtime-long-entry-alert",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": ["Solidtime", "Slack", "Alerts", "Time Tracking"]
+}

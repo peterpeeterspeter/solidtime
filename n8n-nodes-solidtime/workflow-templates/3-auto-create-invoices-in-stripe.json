@@ -1,0 +1,119 @@
+{
+  "name": "Auto-create Stripe Invoices from Completed Projects",
+  "nodes": [
+    {
+      "parameters": {
+        "organizationId": "YOUR_ORG_ID",
+        "events": ["project.completed"],
+        "webhookName": "Project Completion → Invoice"
+      },
+      "id": "1",
+      "name": "On Project Completed",
+      "type": "n8n-nodes-solidtime.solidtimeTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "auto-generated",
+      "credentials": {
+        "solidtimeApi": {
+          "id": "1",
+          "name": "Solidtime account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "timeEntry",
+        "operation": "getAll",
+        "organizationId": "YOUR_ORG_ID",
+        "filters": {
+          "project_id": "={{ $json.data.id }}",
+          "billable": true
+        }
+      },
+      "id": "2",
+      "name": "Get Billable Time Entries",
+      "type": "n8n-nodes-solidtime.solidtime",
+      "typeVersion": 1,
+      "position": [470, 300],
+      "credentials": {
+        "solidtimeApi": {
+          "id": "1",
+          "name": "Solidtime account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const totalHours = items.reduce((sum, item) => {\n  return sum + (item.json.duration / 3600);\n}, 0);\n\nconst hourlyRate = 100; // Your hourly rate\nconst totalAmount = Math.round(totalHours * hourlyRate * 100); // in cents\n\nreturn [{\n  json: {\n    customer: $('On Project Completed').first().json.data.client_email,\n    amount: totalAmount,\n    currency: 'usd',\n    description: `Time tracking for project: ${$('On Project Completed').first().json.data.name}`,\n    hours: totalHours.toFixed(2)\n  }\n}];"
+      },
+      "id": "3",
+      "name": "Calculate Invoice Amount",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "resource": "invoiceItem",
+        "customer": "={{ $json.customer }}",
+        "amount": "={{ $json.amount }}",
+        "currency": "={{ $json.currency }}",
+        "description": "={{ $json.description }}"
+      },
+      "id": "4",
+      "name": "Create Stripe Invoice Item",
+      "type": "n8n-nodes-base.stripe",
+      "typeVersion": 1,
+      "position": [910, 300],
+      "credentials": {
+        "stripeApi": {
+          "id": "1",
+          "name": "Stripe account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "invoice",
+        "operation": "create",
+        "customer": "={{ $json.customer }}",
+        "additionalFields": {
+          "auto_advance": true
+        }
+      },
+      "id": "5",
+      "name": "Create & Send Invoice",
+      "type": "n8n-nodes-base.stripe",
+      "typeVersion": 1,
+      "position": [1130, 300],
+      "credentials": {
+        "stripeApi": {
+          "id": "1",
+          "name": "Stripe account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On Project Completed": {
+      "main": [[{ "node": "Get Billable Time Entries", "type": "main", "index": 0 }]]
+    },
+    "Get Billable Time Entries": {
+      "main": [[{ "node": "Calculate Invoice Amount", "type": "main", "index": 0 }]]
+    },
+    "Calculate Invoice Amount": {
+      "main": [[{ "node": "Create Stripe Invoice Item", "type": "main", "index": 0 }]]
+    },
+    "Create Stripe Invoice Item": {
+      "main": [[{ "node": "Create & Send Invoice", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1",
+  "id": "solidtime-stripe-invoicing",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": ["Solidtime", "Stripe", "Invoicing", "Billing"]
+}

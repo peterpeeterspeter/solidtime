@@ -1,0 +1,86 @@
+{
+  "name": "Auto-create Time Entries from Google Calendar",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Every Hour",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "operation": "getAll",
+        "calendarId": {
+          "__rl": true,
+          "value": "primary",
+          "mode": "list"
+        },
+        "options": {
+          "timeMin": "={{ $now.minus({hours: 1}).toISO() }}",
+          "timeMax": "={{ $now.toISO() }}"
+        }
+      },
+      "id": "2",
+      "name": "Get Calendar Events",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [470, 300],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "1",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "timeEntry",
+        "operation": "create",
+        "organizationId": "YOUR_ORG_ID",
+        "description": "={{ $json.summary }}",
+        "start": "={{ $json.start.dateTime }}",
+        "end": "={{ $json.end.dateTime }}",
+        "billable": false
+      },
+      "id": "3",
+      "name": "Create Time Entry in Solidtime",
+      "type": "n8n-nodes-solidtime.solidtime",
+      "typeVersion": 1,
+      "position": [690, 300],
+      "credentials": {
+        "solidtimeApi": {
+          "id": "1",
+          "name": "Solidtime account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every Hour": {
+      "main": [[{ "node": "Get Calendar Events", "type": "main", "index": 0 }]]
+    },
+    "Get Calendar Events": {
+      "main": [[{ "node": "Create Time Entry in Solidtime", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1",
+  "id": "solidtime-calendar-sync",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": ["Solidtime", "Google Calendar", "Time Tracking"]
+}

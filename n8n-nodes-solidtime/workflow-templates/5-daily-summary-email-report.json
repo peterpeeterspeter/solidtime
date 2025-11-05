@@ -1,0 +1,93 @@
+{
+  "name": "Daily Time Tracking Summary Email",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * 1-5"
+            }
+          ]
+        }
+      },
+      "id": "1",
+      "name": "Every Weekday at 6 PM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [250, 300]
+    },
+    {
+      "parameters": {
+        "resource": "timeEntry",
+        "operation": "getAll",
+        "organizationId": "YOUR_ORG_ID",
+        "filters": {
+          "start_date": "={{ $now.startOf('day').toISO() }}",
+          "end_date": "={{ $now.endOf('day').toISO() }}"
+        }
+      },
+      "id": "2",
+      "name": "Get Today's Time Entries",
+      "type": "n8n-nodes-solidtime.solidtime",
+      "typeVersion": 1,
+      "position": [470, 300],
+      "credentials": {
+        "solidtimeApi": {
+          "id": "1",
+          "name": "Solidtime account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "const entries = items.map(item => item.json);\n\nconst totalHours = entries.reduce((sum, entry) => {\n  return sum + ((entry.duration || 0) / 3600);\n}, 0);\n\nconst billableHours = entries\n  .filter(e => e.billable)\n  .reduce((sum, entry) => sum + ((entry.duration || 0) / 3600), 0);\n\nconst projectBreakdown = entries.reduce((acc, entry) => {\n  const projectName = entry.project?.name || 'No Project';\n  if (!acc[projectName]) {\n    acc[projectName] = { hours: 0, count: 0 };\n  }\n  acc[projectName].hours += (entry.duration || 0) / 3600;\n  acc[projectName].count += 1;\n  return acc;\n}, {});\n\nconst projectList = Object.entries(projectBreakdown)\n  .map(([name, data]) => `  • ${name}: ${data.hours.toFixed(2)}h (${data.count} entries)`)\n  .join('\\n');\n\nreturn [{\n  json: {\n    totalHours: totalHours.toFixed(2),\n    billableHours: billableHours.toFixed(2),\n    nonBillableHours: (totalHours - billableHours).toFixed(2),\n    entriesCount: entries.length,\n    projectBreakdown: projectList,\n    date: $now.toFormat('MMMM dd, yyyy')\n  }\n}];"
+      },
+      "id": "3",
+      "name": "Calculate Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [690, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "noreply@solidtime.io",
+        "toEmail": "YOUR_EMAIL",
+        "subject": "=📊 Daily Time Tracking Summary - {{ $json.date }}",
+        "emailType": "html",
+        "message": "=<html>\n<head>\n  <style>\n    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }\n    .container { max-width: 600px; margin: 0 auto; padding: 20px; }\n    .header { background-color: #3b82f6; color: white; padding: 20px; border-radius: 8px 8px 0 0; }\n    .content { background-color: #f9fafb; padding: 20px; }\n    .stats { display: flex; justify-content: space-around; margin: 20px 0; }\n    .stat { text-align: center; padding: 15px; background: white; border-radius: 8px; flex: 1; margin: 0 10px; }\n    .stat-value { font-size: 24px; font-weight: bold; color: #3b82f6; }\n    .stat-label { font-size: 12px; color: #6b7280; }\n    .breakdown { background: white; padding: 15px; border-radius: 8px; margin-top: 20px; }\n    .footer { text-align: center; padding: 20px; color: #6b7280; font-size: 12px; }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <h1>⏱️ Daily Time Tracking Summary</h1>\n      <p>{{ $json.date }}</p>\n    </div>\n    <div class=\"content\">\n      <div class=\"stats\">\n        <div class=\"stat\">\n          <div class=\"stat-value\">{{ $json.totalHours }}h</div>\n          <div class=\"stat-label\">Total Hours</div>\n        </div>\n        <div class=\"stat\">\n          <div class=\"stat-value\">{{ $json.billableHours }}h</div>\n          <div class=\"stat-label\">Billable</div>\n        </div>\n        <div class=\"stat\">\n          <div class=\"stat-value\">{{ $json.entriesCount }}</div>\n          <div class=\"stat-label\">Entries</div>\n        </div>\n      </div>\n      <div class=\"breakdown\">\n        <h3>📁 Project Breakdown</h3>\n        <pre style=\"white-space: pre-wrap;\">{{ $json.projectBreakdown }}</pre>\n      </div>\n    </div>\n    <div class=\"footer\">\n      <p>Automated by n8n + Solidtime</p>\n    </div>\n  </div>\n</body>\n</html>"
+      },
+      "id": "4",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [910, 300],
+      "credentials": {
+        "smtp": {
+          "id": "1",
+          "name": "SMTP account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Every Weekday at 6 PM": {
+      "main": [[{ "node": "Get Today's Time Entries", "type": "main", "index": 0 }]]
+    },
+    "Get Today's Time Entries": {
+      "main": [[{ "node": "Calculate Summary", "type": "main", "index": 0 }]]
+    },
+    "Calculate Summary": {
+      "main": [[{ "node": "Send Email", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1",
+  "id": "solidtime-daily-summary",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": ["Solidtime", "Email", "Reporting", "Daily Summary"]
+}

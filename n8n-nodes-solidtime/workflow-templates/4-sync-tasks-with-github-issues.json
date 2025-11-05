@@ -1,0 +1,96 @@
+{
+  "name": "Sync Solidtime Tasks with GitHub Issues",
+  "nodes": [
+    {
+      "parameters": {
+        "organizationId": "YOUR_ORG_ID",
+        "events": ["task.created"],
+        "webhookName": "Task → GitHub Issue"
+      },
+      "id": "1",
+      "name": "On Task Created",
+      "type": "n8n-nodes-solidtime.solidtimeTrigger",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "auto-generated",
+      "credentials": {
+        "solidtimeApi": {
+          "id": "1",
+          "name": "Solidtime account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "issue",
+        "operation": "create",
+        "owner": {
+          "__rl": true,
+          "value": "your-org",
+          "mode": "name"
+        },
+        "repository": {
+          "__rl": true,
+          "value": "your-repo",
+          "mode": "name"
+        },
+        "title": "={{ $json.data.name }}",
+        "body": "=**Solidtime Task**\n\nTask ID: {{ $json.data.id }}\nProject: {{ $json.data.project?.name || 'No project' }}\n\nEstimated Hours: {{ $json.data.estimated_hours || 'Not set' }}\n\n---\nAutomatically created from Solidtime",
+        "labels": {
+          "labelNames": ["solidtime", "time-tracking"]
+        }
+      },
+      "id": "2",
+      "name": "Create GitHub Issue",
+      "type": "n8n-nodes-base.github",
+      "typeVersion": 1,
+      "position": [470, 300],
+      "credentials": {
+        "githubApi": {
+          "id": "1",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "task",
+        "operation": "update",
+        "taskIdParam": "={{ $('On Task Created').first().json.data.id }}",
+        "additionalFields": {
+          "metadata": {
+            "github_issue_number": "={{ $json.number }}",
+            "github_issue_url": "={{ $json.html_url }}"
+          }
+        }
+      },
+      "id": "3",
+      "name": "Update Task with GitHub Link",
+      "type": "n8n-nodes-solidtime.solidtime",
+      "typeVersion": 1,
+      "position": [690, 300],
+      "credentials": {
+        "solidtimeApi": {
+          "id": "1",
+          "name": "Solidtime account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On Task Created": {
+      "main": [[{ "node": "Create GitHub Issue", "type": "main", "index": 0 }]]
+    },
+    "Create GitHub Issue": {
+      "main": [[{ "node": "Update Task with GitHub Link", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "1",
+  "id": "solidtime-github-sync",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": ["Solidtime", "GitHub", "Project Management", "Tasks"]
+}
