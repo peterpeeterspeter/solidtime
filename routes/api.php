@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\V1\TaskController;
 use App\Http\Controllers\Api\V1\TimeEntryController;
 use App\Http\Controllers\Api\V1\UserController;
 use App\Http\Controllers\Api\V1\UserMembershipController;
+use App\Http\Controllers\Api\V1\UserPrivacySettingController;
 use App\Http\Controllers\Api\V1\UserTimeEntryController;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -64,6 +65,14 @@ Route::prefix('v1')->name('v1.')->group(static function (): void {
         // User routes
         Route::name('users.')->group(static function (): void {
             Route::get('/users/me', [UserController::class, 'me'])->name('me');
+        });
+
+        // User Privacy Setting routes
+        Route::name('user-privacy-settings.')->group(static function (): void {
+            Route::get('/users/me/privacy-settings', [UserPrivacySettingController::class, 'show'])->name('show');
+            Route::put('/users/me/privacy-settings', [UserPrivacySettingController::class, 'update'])->name('update');
+            Route::get('/users/me/privacy-settings/consent-history', [UserPrivacySettingController::class, 'consentHistory'])->name('consent-history');
+            Route::get('/users/me/privacy-settings/data-collection-status', [UserPrivacySettingController::class, 'dataCollectionStatus'])->name('data-collection-status');
         });
 
         // Api token routes
