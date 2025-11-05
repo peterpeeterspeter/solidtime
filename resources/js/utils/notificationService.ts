@@ -1,6 +1,20 @@
 import { ref, computed } from 'vue';
 import axios from 'axios';
 
+// NotificationAction interface (part of Web Notifications API)
+interface NotificationAction {
+    action: string;
+    title: string;
+    icon?: string;
+}
+
+// Extended NotificationOptions to include all properties we use
+interface ExtendedNotificationOptions extends NotificationOptions {
+    vibrate?: number[];
+    actions?: NotificationAction[];
+    type?: string;
+}
+
 // Notification permission states
 export enum NotificationPermission {
     DEFAULT = 'default',
@@ -214,7 +228,7 @@ export class NotificationService {
      */
     async showNotification(
         title: string,
-        options: NotificationOptions & { type?: NotificationType } = {}
+        options: ExtendedNotificationOptions = {}
     ): Promise<void> {
         if (!hasPermission.value) {
             console.warn('Cannot show notification: permission not granted');
@@ -224,7 +238,7 @@ export class NotificationService {
         try {
             const registration = await navigator.serviceWorker.ready;
 
-            const defaultOptions: NotificationOptions = {
+            const defaultOptions: ExtendedNotificationOptions = {
                 icon: '/images/pwa-192x192.png',
                 badge: '/images/pwa-192x192-maskable.png',
                 vibrate: [200, 100, 200],
@@ -597,7 +611,7 @@ export const notificationHelpers = {
     subscribeToPush: (vapidKey: string) => notificationService.subscribeToPush(vapidKey),
     unsubscribeFromPush: () => notificationService.unsubscribeFromPush(),
     updatePreferences: (prefs: Partial<NotificationPreferences>) => notificationService.updatePreferences(prefs),
-    showNotification: (title: string, options?: NotificationOptions) => notificationService.showNotification(title, options),
+    showNotification: (title: string, options?: ExtendedNotificationOptions) => notificationService.showNotification(title, options),
     startTimerReminders: () => notificationService.startTimerReminders(),
     stopTimerReminders: () => notificationService.stopTimerReminders()
 };

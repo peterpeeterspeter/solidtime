@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { router, usePage } from '@inertiajs/vue3';
 import ActionSection from '@/Components/ActionSection.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
+import SecondaryButton from '@/packages/ui/src/Buttons/SecondaryButton.vue';
 
 const page = usePage();
 const saving = ref(false);

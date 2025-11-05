@@ -192,12 +192,12 @@ const {
 
 const selectedStatus = ref<InvoiceStatus | 'all'>('all');
 
-const statuses = [
+const statuses: Array<{ value: 'all' | InvoiceStatus; label: string }> = [
     { value: 'all', label: 'All' },
-    { value: 'draft', label: 'Draft' },
-    { value: 'sent', label: 'Sent' },
-    { value: 'paid', label: 'Paid' },
-    { value: 'overdue', label: 'Overdue' }
+    { value: 'draft' as InvoiceStatus, label: 'Draft' },
+    { value: 'sent' as InvoiceStatus, label: 'Sent' },
+    { value: 'paid' as InvoiceStatus, label: 'Paid' },
+    { value: 'overdue' as InvoiceStatus, label: 'Overdue' }
 ];
 
 const filteredInvoices = computed(() => {

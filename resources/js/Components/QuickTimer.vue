@@ -336,7 +336,7 @@ const fetchRecentData = async () => {
 
 const useRecentEntry = (entry: TimeEntry) => {
     newEntry.value.description = entry.description;
-    newEntry.value.projectId = entry.projectId;
+    newEntry.value.projectId = entry.projectId ?? null;
     newEntry.value.tags = entry.tags?.join(', ') || '';
     newEntry.value.billable = entry.billable;
 };

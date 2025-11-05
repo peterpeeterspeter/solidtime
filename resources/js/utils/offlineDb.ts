@@ -48,7 +48,7 @@ export const offlineDb = {
     /**
      * Add a time entry to offline storage
      */
-    async addTimeEntry(entry: Omit<OfflineTimeEntry, 'id'>): Promise<number> {
+    async addTimeEntry(entry: Omit<OfflineTimeEntry, 'id'>): Promise<number | undefined> {
         return await db.timeEntries.add(entry);
     },
 
@@ -56,7 +56,7 @@ export const offlineDb = {
      * Get all unsynced time entries
      */
     async getUnsyncedEntries(): Promise<OfflineTimeEntry[]> {
-        return await db.timeEntries.where('synced').equals(false).toArray();
+        return await db.timeEntries.where('synced').equals(0).toArray();
     },
 
     /**
@@ -131,7 +131,7 @@ export const offlineDb = {
      */
     async getStats() {
         const totalEntries = await db.timeEntries.count();
-        const unsyncedEntries = await db.timeEntries.where('synced').equals(false).count();
+        const unsyncedEntries = await db.timeEntries.where('synced').equals(0).count();
         const queuedItems = await db.syncQueue.count();
 
         return {

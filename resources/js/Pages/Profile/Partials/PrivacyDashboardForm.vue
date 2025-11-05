@@ -2,8 +2,8 @@
 import { ref } from 'vue';
 import { router } from '@inertiajs/vue3';
 import ActionSection from '@/Components/ActionSection.vue';
-import DangerButton from '@/Components/DangerButton.vue';
-import SecondaryButton from '@/Components/SecondaryButton.vue';
+import DangerButton from '@/packages/ui/src/Buttons/DangerButton.vue';
+import SecondaryButton from '@/packages/ui/src/Buttons/SecondaryButton.vue';
 
 const exportingData = ref(false);
 const viewingAuditLog = ref(false);

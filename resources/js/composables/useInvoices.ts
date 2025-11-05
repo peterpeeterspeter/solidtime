@@ -4,9 +4,9 @@ import type {
     Invoice,
     InvoiceSettings,
     CreateInvoiceRequest,
-    GenerateInvoiceFromTimeRequest,
-    InvoiceStatus
+    GenerateInvoiceFromTimeRequest
 } from '@/types/invoice';
+import { InvoiceStatus } from '@/types/invoice';
 
 /**
  * Composable for invoice management
@@ -150,7 +150,7 @@ export function useInvoices() {
      * Mark invoice as sent
      */
     const markAsSent = async (invoiceId: string): Promise<boolean> => {
-        return updateInvoice(invoiceId, { status: 'sent' });
+        return updateInvoice(invoiceId, { status: InvoiceStatus.SENT });
     };
 
     /**
@@ -158,7 +158,7 @@ export function useInvoices() {
      */
     const markAsPaid = async (invoiceId: string, paidDate?: string): Promise<boolean> => {
         return updateInvoice(invoiceId, {
-            status: 'paid',
+            status: InvoiceStatus.PAID,
             paidDate: paidDate || new Date().toISOString()
         });
     };
