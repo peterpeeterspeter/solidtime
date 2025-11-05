@@ -19,15 +19,19 @@
 ## Features
 
 ### Core Time Tracking
-- ⏱️ **Quick Start/Stop** - One-click timer with optional project/task selection
-- ⌨️ **Keyboard Shortcuts** - Full keyboard navigation for power users
+- ⏱️ **Quick Start/Stop** - One-click timer with optional project/task selection (Cmd/Ctrl+T)
+- ⚡ **Always-Visible Timer** - Timer widget in navigation bar, never lose track
+- ⌨️ **Keyboard Shortcuts** - Full keyboard navigation for power users ([See all shortcuts](docs/KEYBOARD_SHORTCUTS.md))
+- 🎯 **Command Palette** - Universal search and actions (Cmd/Ctrl+K)
 - 📝 **Manual Entry** - Add or adjust hours for any timeframe
 - 💰 **Billable Tracking** - Mark entries as billable/non-billable with custom rates
 
 ### Invoicing & Billing
-- 🧾 **Invoice Generator** - Create professional PDF invoices from tracked time
+- 🧾 **Invoice Generator** - Create professional PDF invoices from tracked time ([Guide](docs/INVOICING.md))
+- 🇪🇺 **EU-Compliant Invoices** - VAT numbers, reverse charge mechanism, multi-currency
+- ⚡ **Instant PDF Generation** - Professional invoices in seconds
 - 🎨 **Branded Invoices** - Customize with your logo and branding
-- 📊 **Invoice Status** - Track sent/paid status per invoice
+- 📊 **Invoice Status** - Track draft/sent/paid/overdue status per invoice
 - 📤 **Multiple Export Formats** - PDF, CSV, and shareable links
 
 ### Team Collaboration
@@ -49,11 +53,78 @@
 - 🔗 **API Access** - RESTful API with OAuth 2.0
 - 🔌 **Zapier Ready** - Automation and workflow integration
 
+### PWA & Mobile
+- 📱 **Progressive Web App** - Install on any device, works like a native app
+- 🔌 **Offline Support** - Track time without internet, syncs automatically
+- 🔔 **Smart Notifications** - Break reminders, daily summaries, timer alerts
+- 📲 **Add to Home Screen** - One-tap access from mobile home screen
+- ⚡ **Background Sync** - Automatic data synchronization when online
+
 ### Reporting & Analytics
 - 📊 **Detailed Reports** - Hours by client, project, team, period
 - 📈 **Visual Dashboards** - Charts and graphs for insights
 - 💼 **Billability Tracking** - Monitor billable vs non-billable time
 - 📤 **Export Options** - PDF, Excel, public report links
+
+## Getting Started
+
+### For End Users
+
+**New to Timeclocker?** The first time you log in, you'll be guided through an interactive onboarding wizard that helps you:
+- Set up your workspace and preferences
+- Create your first project
+- Learn essential keyboard shortcuts
+- Enable notifications and PWA features
+
+**Quick Start:**
+1. **Start Timer**: Press `Cmd+T` (Mac) or `Ctrl+T` (Windows) to instantly start tracking time
+2. **Command Palette**: Press `Cmd+K` / `Ctrl+K` to access all features instantly
+3. **Create Invoice**: Go to Time Entries → Select entries → "Create Invoice"
+4. **Install PWA**: Look for browser install prompt or "Add to Home Screen"
+
+📖 [Full User Guide](docs/USER_GUIDE.md) | ⌨️ [Keyboard Shortcuts](docs/KEYBOARD_SHORTCUTS.md) | 🧾 [Invoice Guide](docs/INVOICING.md)
+
+### For Developers
+
+**Prerequisites:**
+- PHP 8.2+
+- Node.js 20+
+- PostgreSQL 15+
+- Composer
+- npm/pnpm
+
+**Installation:**
+```bash
+# Clone repository
+git clone https://github.com/yourorg/timeclocker.git
+cd timeclocker
+
+# Install dependencies
+composer install
+npm install
+
+# Configure environment
+cp .env.example .env
+php artisan key:generate
+
+# Generate VAPID keys for push notifications
+php artisan webpush:vapid
+
+# Generate PWA icons
+npm run icons:generate
+
+# Run migrations
+php artisan migrate
+
+# Build assets
+npm run build
+
+# Start development server
+php artisan serve
+npm run dev
+```
+
+📖 [Full Development Guide](docs/DEVELOPMENT.md)
 
 ## Self Hosting
 
