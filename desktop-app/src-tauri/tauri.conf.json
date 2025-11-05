@@ -71,11 +71,13 @@
       "identifier": "io.solidtime.desktop",
       "longDescription": "Automatic time tracking with privacy-first activity monitoring. Track your productivity without compromising your privacy.",
       "macOS": {
-        "entitlements": null,
+        "entitlements": "entitlements.plist",
         "exceptionDomain": "",
         "frameworks": [],
         "providerShortName": null,
-        "signingIdentity": null
+        "signingIdentity": null,
+        "minimumSystemVersion": "10.13",
+        "useBootstrapper": true
       },
       "resources": [],
       "shortDescription": "Automatic time tracking",
@@ -83,14 +85,26 @@
       "windows": {
         "certificateThumbprint": null,
         "digestAlgorithm": "sha256",
-        "timestampUrl": ""
+        "timestampUrl": "",
+        "webviewInstallMode": {
+          "type": "downloadBootstrapper"
+        },
+        "wix": {
+          "language": "en-US",
+          "template": null
+        }
       }
     },
     "security": {
       "csp": null
     },
     "updater": {
-      "active": false
+      "active": true,
+      "endpoints": [
+        "https://releases.solidtime.io/desktop/{{target}}/{{current_version}}"
+      ],
+      "dialog": true,
+      "pubkey": "PASTE_YOUR_PUBLIC_KEY_HERE"
     },
     "windows": [
       {
