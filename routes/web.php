@@ -21,6 +21,15 @@ use Laravel\Jetstream\Jetstream;
 
 Route::get('/', [HomeController::class, 'index']);
 
+// Legal pages
+Route::get('/legal/privacy', function () {
+    return view('legal.privacy');
+})->name('legal.privacy');
+
+Route::get('/legal/terms', function () {
+    return view('legal.terms');
+})->name('legal.terms');
+
 Route::get('/shared-report', function () {
     return Inertia::render('SharedReport');
 })->name('shared-report');

@@ -11,6 +11,7 @@ import type { User } from '@/types/models';
 import type { Session } from '@/types/jetstream';
 import ApiTokensForm from '@/Pages/Profile/Partials/ApiTokensForm.vue';
 import ThemeForm from '@/Pages/Profile/Partials/ThemeForm.vue';
+import PrivacyDashboardForm from '@/Pages/Profile/Partials/PrivacyDashboardForm.vue';
 
 defineProps<{
     confirmsTwoFactorAuthentication: boolean;
@@ -65,6 +66,9 @@ const page = usePage<{
                 </div>
 
                 <LogoutOtherBrowserSessionsForm :sessions="sessions" class="mt-10 sm:mt-0" />
+                <SectionBorder />
+
+                <PrivacyDashboardForm class="mt-10 sm:mt-0" />
                 <SectionBorder />
 
                 <ApiTokensForm></ApiTokensForm>

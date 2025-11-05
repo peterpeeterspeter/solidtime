@@ -252,8 +252,8 @@ const user = computed(() => page?.props?.auth?.user);
                         © 2025 Timeclocker. Open source under AGPL-3.0.
                     </div>
                     <div class="flex items-center gap-6 text-sm text-text-tertiary">
-                        <a href="#" class="hover:text-accent-600 dark:hover:text-accent-400 transition">Privacy Policy</a>
-                        <a href="#" class="hover:text-accent-600 dark:hover:text-accent-400 transition">Terms</a>
+                        <a href="/legal/privacy" class="hover:text-accent-600 dark:hover:text-accent-400 transition">Privacy Policy</a>
+                        <a href="/legal/terms" class="hover:text-accent-600 dark:hover:text-accent-400 transition">Terms</a>
                         <a href="https://github.com/solidtime-io/solidtime" class="hover:text-accent-600 dark:hover:text-accent-400 transition">GitHub</a>
                     </div>
                 </div>
