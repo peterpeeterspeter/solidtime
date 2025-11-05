@@ -9,12 +9,16 @@ use App\Http\Controllers\Api\V1\CurrencyController;
 use App\Http\Controllers\Api\V1\ExportController;
 use App\Http\Controllers\Api\V1\ImportController;
 use App\Http\Controllers\Api\V1\InvitationController;
+use App\Http\Controllers\Api\V1\InvoiceController;
 use App\Http\Controllers\Api\V1\MemberController;
 use App\Http\Controllers\Api\V1\OrganizationController;
+use App\Http\Controllers\Api\V1\PaymentController;
+use App\Http\Controllers\Api\V1\PaymentGatewayConnectionController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\ProjectMemberController;
 use App\Http\Controllers\Api\V1\Public\ReportController as PublicReportController;
 use App\Http\Controllers\Api\V1\PushSubscriptionController;
+use App\Http\Controllers\Api\V1\RecurringInvoiceScheduleController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\TaskController;
@@ -180,6 +184,43 @@ Route::prefix('v1')->name('v1.')->group(static function (): void {
         // Export routes
         Route::name('export.')->prefix('/organizations/{organization}')->group(static function (): void {
             Route::post('/export', [ExportController::class, 'export'])->name('export');
+        });
+
+        // Payment Gateway Connection routes (user-scoped)
+        Route::name('payment-gateways.')->group(static function (): void {
+            Route::get('/payment-gateways', [PaymentGatewayConnectionController::class, 'index'])->name('index');
+            Route::post('/payment-gateways/authorization-url', [PaymentGatewayConnectionController::class, 'getAuthorizationUrl'])->name('authorization-url');
+            Route::post('/payment-gateways/callback', [PaymentGatewayConnectionController::class, 'handleCallback'])->name('callback');
+            Route::delete('/payment-gateways/{connection}', [PaymentGatewayConnectionController::class, 'destroy'])->name('destroy');
+        });
+
+        // Invoice routes (organization-scoped)
+        Route::name('invoices.')->prefix('/organizations/{organization}')->group(static function (): void {
+            Route::get('/invoices', [InvoiceController::class, 'index'])->name('index');
+            Route::get('/invoices/{invoice}', [InvoiceController::class, 'show'])->name('show');
+            Route::post('/invoices', [InvoiceController::class, 'store'])->name('store')->middleware('check-organization-blocked');
+            Route::put('/invoices/{invoice}', [InvoiceController::class, 'update'])->name('update')->middleware('check-organization-blocked');
+            Route::delete('/invoices/{invoice}', [InvoiceController::class, 'destroy'])->name('destroy');
+            Route::post('/invoices/{invoice}/mark-as-sent', [InvoiceController::class, 'markAsSent'])->name('mark-as-sent')->middleware('check-organization-blocked');
+            Route::post('/invoices/{invoice}/mark-as-paid', [InvoiceController::class, 'markAsPaid'])->name('mark-as-paid')->middleware('check-organization-blocked');
+        });
+
+        // Payment routes (organization-scoped)
+        Route::name('payments.')->prefix('/organizations/{organization}')->group(static function (): void {
+            Route::get('/payments', [PaymentController::class, 'index'])->name('index');
+            Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('show');
+            Route::post('/payments/{payment}/refund', [PaymentController::class, 'refund'])->name('refund')->middleware('check-organization-blocked');
+        });
+
+        // Recurring Invoice Schedule routes (organization-scoped)
+        Route::name('recurring-schedules.')->prefix('/organizations/{organization}')->group(static function (): void {
+            Route::get('/recurring-schedules', [RecurringInvoiceScheduleController::class, 'index'])->name('index');
+            Route::get('/recurring-schedules/{schedule}', [RecurringInvoiceScheduleController::class, 'show'])->name('show');
+            Route::post('/recurring-schedules', [RecurringInvoiceScheduleController::class, 'store'])->name('store')->middleware('check-organization-blocked');
+            Route::put('/recurring-schedules/{schedule}', [RecurringInvoiceScheduleController::class, 'update'])->name('update')->middleware('check-organization-blocked');
+            Route::delete('/recurring-schedules/{schedule}', [RecurringInvoiceScheduleController::class, 'destroy'])->name('destroy');
+            Route::post('/recurring-schedules/{schedule}/pause', [RecurringInvoiceScheduleController::class, 'pause'])->name('pause')->middleware('check-organization-blocked');
+            Route::post('/recurring-schedules/{schedule}/resume', [RecurringInvoiceScheduleController::class, 'resume'])->name('resume')->middleware('check-organization-blocked');
         });
     });
 
