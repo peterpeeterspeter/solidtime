@@ -24,7 +24,7 @@ return [
     |
     */
 
-    'name' => 'solidtime',
+    'name' => 'Timeclocker',
 
     'version' => env('APP_VERSION'),
 
