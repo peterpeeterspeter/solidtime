@@ -6,167 +6,244 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Webhook;
-use App\Models\WebhookDelivery;
-use App\Services\WebhookService;
+use App\Services\WebhookDispatcher;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 
-/**
- * WebhookController
- *
- * Manages webhook subscriptions and delivery history.
- *
- * @tags Webhooks
- */
 class WebhookController extends Controller
 {
     public function __construct(
-        private readonly WebhookService $webhookService
+        protected WebhookDispatcher $dispatcher
     ) {
     }
 
     /**
-     * List all webhooks for the authenticated user.
-     *
-     * @operationId getWebhooks
+     * List all webhooks for the organization
      */
     public function index(Request $request): JsonResponse
     {
-        $webhooks = Webhook::where('user_id', $request->user()->id)
-            ->orderBy('created_at', 'desc')
+        $user = $request->user();
+        $organizationId = $request->input('organization_id');
+
+        if (! $this->userHasAccessToOrganization($user->id, $organizationId)) {
+            return response()->json([
+                'error' => 'Access denied',
+            ], 403);
+        }
+
+        $webhooks = Webhook::forOrganization($organizationId)
+            ->with('user')
+            ->orderByDesc('created_at')
             ->get();
 
         return response()->json([
-            'data' => $webhooks->map(function ($webhook) {
-                return [
-                    'id' => $webhook->id,
-                    'url' => $webhook->url,
-                    'events' => $webhook->events,
-                    'is_active' => $webhook->is_active,
-                    'last_delivery_at' => $webhook->last_delivery_at?->toIso8601String(),
-                    'delivery_success_count' => $webhook->delivery_success_count,
-                    'delivery_failure_count' => $webhook->delivery_failure_count,
-                    'success_rate' => $webhook->success_rate,
-                    'created_at' => $webhook->created_at->toIso8601String(),
+            'data' => $webhooks->map(fn ($webhook) => [
+                'id' => $webhook->id,
+                'name' => $webhook->name,
+                'description' => $webhook->description,
+                'url' => $webhook->url,
+                'events' => $webhook->events,
+                'filters' => $webhook->filters,
+                'is_active' => $webhook->is_active,
+                'failure_count' => $webhook->failure_count,
+                'last_triggered_at' => $webhook->last_triggered_at?->toIso8601String(),
+                'last_success_at' => $webhook->last_success_at?->toIso8601String(),
+                'last_failure_at' => $webhook->last_failure_at?->toIso8601String(),
+                'last_error' => $webhook->last_error,
+                'verification_status' => $webhook->verification_status,
+                'verified_at' => $webhook->verified_at?->toIso8601String(),
+                'created_at' => $webhook->created_at->toIso8601String(),
+                'created_by' => [
+                    'id' => $webhook->user->id,
+                    'name' => $webhook->user->name,
                 ],
             ]),
         ]);
     }
 
     /**
-     * Get a specific webhook by ID.
-     *
-     * @operationId getWebhook
-     */
-    public function show(Request $request, string $webhookId): JsonResponse
-    {
-        $webhook = Webhook::where('user_id', $request->user()->id)
-            ->findOrFail($webhookId);
-
-        return response()->json([
-            'data' => [
-                'id' => $webhook->id,
-                'url' => $webhook->url,
-                'events' => $webhook->events,
-                'is_active' => $webhook->is_active,
-                'last_delivery_at' => $webhook->last_delivery_at?->toIso8601String(),
-                'delivery_success_count' => $webhook->delivery_success_count,
-                'delivery_failure_count' => $webhook->delivery_failure_count,
-                'success_rate' => $webhook->success_rate,
-                'created_at' => $webhook->created_at->toIso8601String(),
-                'updated_at' => $webhook->updated_at->toIso8601String(),
-            ],
-        ]);
-    }
-
-    /**
-     * Create a new webhook.
-     *
-     * @operationId createWebhook
+     * Create a new webhook
      */
     public function store(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'url' => ['required', 'url', 'max:2048', 'starts_with:https://'],
-            'events' => ['required', 'array', 'min:1'],
-            'events.*' => ['required', 'string', Rule::in(Webhook::AVAILABLE_EVENTS)],
-            'secret' => ['nullable', 'string', 'min:16', 'max:255'],
-            'is_active' => ['sometimes', 'boolean'],
-        ], [
-            'url.starts_with' => 'Webhook URL must use HTTPS for security.',
-            'events.*.in' => 'Invalid event type. See documentation for available events.',
+        $validator = Validator::make($request->all(), [
+            'organization_id' => 'required|uuid|exists:organizations,id',
+            'name' => 'required|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'url' => 'required|url|max:500',
+            'events' => 'required|array|min:1',
+            'events.*' => ['required', 'string', Rule::in(array_keys(Webhook::EVENTS))],
+            'filters' => 'nullable|array',
+            'secret' => 'nullable|string|min:32',
         ]);
 
-        // Generate secure random secret if not provided
-        if (! isset($validated['secret'])) {
-            $validated['secret'] = Str::random(64);
+        if ($validator->fails()) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
         }
 
+        $user = $request->user();
+        $organizationId = $request->input('organization_id');
+
+        if (! $this->userHasAccessToOrganization($user->id, $organizationId)) {
+            return response()->json([
+                'error' => 'Access denied',
+            ], 403);
+        }
+
+        // Generate secret if not provided
+        $secret = $request->input('secret') ?? Webhook::generateSecret();
+
         $webhook = Webhook::create([
-            'user_id' => $request->user()->id,
-            'url' => $validated['url'],
-            'secret' => $validated['secret'],
-            'events' => $validated['events'],
-            'is_active' => $validated['is_active'] ?? true,
+            'user_id' => $user->id,
+            'organization_id' => $organizationId,
+            'name' => $request->input('name'),
+            'description' => $request->input('description'),
+            'url' => $request->input('url'),
+            'secret' => $secret,
+            'events' => $request->input('events'),
+            'filters' => $request->input('filters'),
+            'is_active' => true,
+            'verification_status' => 'pending',
         ]);
 
         return response()->json([
             'data' => [
                 'id' => $webhook->id,
+                'name' => $webhook->name,
+                'description' => $webhook->description,
                 'url' => $webhook->url,
+                'secret' => $secret, // Show secret once
                 'events' => $webhook->events,
+                'filters' => $webhook->filters,
                 'is_active' => $webhook->is_active,
-                'secret' => $webhook->secret, // Only shown on creation!
+                'verification_status' => $webhook->verification_status,
                 'created_at' => $webhook->created_at->toIso8601String(),
             ],
-            'message' => 'Webhook created successfully. Save the secret - it will not be shown again.',
+            'warning' => 'Save the secret securely. It is used to verify webhook signatures.',
         ], 201);
     }
 
     /**
-     * Update an existing webhook.
-     *
-     * @operationId updateWebhook
+     * Show a specific webhook
      */
-    public function update(Request $request, string $webhookId): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
-        $webhook = Webhook::where('user_id', $request->user()->id)
-            ->findOrFail($webhookId);
+        $webhook = Webhook::find($id);
 
-        $validated = $request->validate([
-            'url' => ['sometimes', 'url', 'max:2048', 'starts_with:https://'],
-            'events' => ['sometimes', 'array', 'min:1'],
-            'events.*' => ['required', 'string', Rule::in(Webhook::AVAILABLE_EVENTS)],
-            'is_active' => ['sometimes', 'boolean'],
-        ], [
-            'url.starts_with' => 'Webhook URL must use HTTPS for security.',
-        ]);
+        if (! $webhook) {
+            return response()->json([
+                'error' => 'Not found',
+            ], 404);
+        }
 
-        $webhook->update($validated);
+        $user = $request->user();
+
+        if (! $this->userHasAccessToOrganization($user->id, $webhook->organization_id)) {
+            return response()->json([
+                'error' => 'Access denied',
+            ], 403);
+        }
 
         return response()->json([
             'data' => [
                 'id' => $webhook->id,
+                'name' => $webhook->name,
+                'description' => $webhook->description,
                 'url' => $webhook->url,
                 'events' => $webhook->events,
+                'filters' => $webhook->filters,
                 'is_active' => $webhook->is_active,
-                'updated_at' => $webhook->updated_at->toIso8601String(),
+                'failure_count' => $webhook->failure_count,
+                'last_triggered_at' => $webhook->last_triggered_at?->toIso8601String(),
+                'last_success_at' => $webhook->last_success_at?->toIso8601String(),
+                'last_failure_at' => $webhook->last_failure_at?->toIso8601String(),
+                'last_error' => $webhook->last_error,
+                'verification_status' => $webhook->verification_status,
+                'verified_at' => $webhook->verified_at?->toIso8601String(),
+                'created_at' => $webhook->created_at->toIso8601String(),
             ],
-            'message' => 'Webhook updated successfully',
         ]);
     }
 
     /**
-     * Delete a webhook.
-     *
-     * @operationId deleteWebhook
+     * Update webhook
      */
-    public function destroy(Request $request, string $webhookId): JsonResponse
+    public function update(Request $request, string $id): JsonResponse
     {
-        $webhook = Webhook::where('user_id', $request->user()->id)
-            ->findOrFail($webhookId);
+        $webhook = Webhook::find($id);
+
+        if (! $webhook) {
+            return response()->json([
+                'error' => 'Not found',
+            ], 404);
+        }
+
+        $user = $request->user();
+
+        if (! $this->userHasAccessToOrganization($user->id, $webhook->organization_id)) {
+            return response()->json([
+                'error' => 'Access denied',
+            ], 403);
+        }
+
+        $validator = Validator::make($request->all(), [
+            'name' => 'sometimes|string|max:255',
+            'description' => 'nullable|string|max:1000',
+            'url' => 'sometimes|url|max:500',
+            'events' => 'sometimes|array|min:1',
+            'events.*' => ['required_with:events', 'string', Rule::in(array_keys(Webhook::EVENTS))],
+            'filters' => 'nullable|array',
+            'is_active' => 'sometimes|boolean',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'error' => 'Validation failed',
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $webhook->update($request->only(['name', 'description', 'url', 'events', 'filters', 'is_active']));
+
+        return response()->json([
+            'data' => [
+                'id' => $webhook->id,
+                'name' => $webhook->name,
+                'description' => $webhook->description,
+                'url' => $webhook->url,
+                'events' => $webhook->events,
+                'filters' => $webhook->filters,
+                'is_active' => $webhook->is_active,
+                'updated_at' => $webhook->updated_at->toIso8601String(),
+            ],
+        ]);
+    }
+
+    /**
+     * Delete webhook
+     */
+    public function destroy(Request $request, string $id): JsonResponse
+    {
+        $webhook = Webhook::find($id);
+
+        if (! $webhook) {
+            return response()->json([
+                'error' => 'Not found',
+            ], 404);
+        }
+
+        $user = $request->user();
+
+        if (! $this->userHasAccessToOrganization($user->id, $webhook->organization_id)) {
+            return response()->json([
+                'error' => 'Access denied',
+            ], 403);
+        }
 
         $webhook->delete();
 
@@ -176,113 +253,61 @@ class WebhookController extends Controller
     }
 
     /**
-     * Get delivery history for a webhook.
-     *
-     * @operationId getWebhookDeliveries
+     * Test webhook by sending a test event
      */
-    public function deliveries(Request $request, string $webhookId): JsonResponse
+    public function test(Request $request, string $id): JsonResponse
     {
-        $webhook = Webhook::where('user_id', $request->user()->id)
-            ->findOrFail($webhookId);
+        $webhook = Webhook::find($id);
 
-        $perPage = min((int) $request->get('per_page', 50), 100);
+        if (! $webhook) {
+            return response()->json([
+                'error' => 'Not found',
+            ], 404);
+        }
 
-        $deliveries = WebhookDelivery::where('webhook_id', $webhook->id)
-            ->orderBy('created_at', 'desc')
-            ->paginate($perPage);
+        $user = $request->user();
+
+        if (! $this->userHasAccessToOrganization($user->id, $webhook->organization_id)) {
+            return response()->json([
+                'error' => 'Access denied',
+            ], 403);
+        }
+
+        $delivery = $this->dispatcher->send($webhook, 'webhook.test', [
+            'test' => true,
+            'message' => 'This is a test webhook from Solidtime',
+            'timestamp' => now()->toIso8601String(),
+        ]);
 
         return response()->json([
-            'data' => $deliveries->map(function ($delivery) {
-                return [
-                    'id' => $delivery->id,
-                    'event_type' => $delivery->event_type,
-                    'attempt' => $delivery->attempt,
-                    'response_status' => $delivery->response_status,
-                    'response_body' => $delivery->response_body,
-                    'error_message' => $delivery->error_message,
-                    'success' => $delivery->wasSuccessful(),
-                    'delivered_at' => $delivery->delivered_at?->toIso8601String(),
-                    'created_at' => $delivery->created_at->toIso8601String(),
-                ];
-            }),
-            'meta' => [
-                'current_page' => $deliveries->currentPage(),
-                'from' => $deliveries->firstItem(),
-                'to' => $deliveries->lastItem(),
-                'per_page' => $deliveries->perPage(),
-                'total' => $deliveries->total(),
-            ],
-            'links' => [
-                'first' => $deliveries->url(1),
-                'last' => $deliveries->url($deliveries->lastPage()),
-                'prev' => $deliveries->previousPageUrl(),
-                'next' => $deliveries->nextPageUrl(),
+            'data' => [
+                'delivery_id' => $delivery->delivery_id,
+                'status' => $delivery->status,
+                'http_status_code' => $delivery->http_status_code,
+                'response_body' => $delivery->response_body,
+                'error_message' => $delivery->error_message,
+                'duration_ms' => $delivery->duration_ms,
             ],
         ]);
     }
 
     /**
-     * Send a test webhook.
-     *
-     * @operationId testWebhook
+     * Get available webhook events
      */
-    public function test(Request $request, string $webhookId): JsonResponse
-    {
-        $webhook = Webhook::where('user_id', $request->user()->id)
-            ->findOrFail($webhookId);
-
-        $result = $this->webhookService->sendTestWebhook($webhook);
-
-        return response()->json([
-            'data' => $result,
-            'message' => $result['message'],
-        ], $result['success'] ? 200 : 400);
-    }
-
-    /**
-     * Get available webhook events.
-     *
-     * @operationId getAvailableWebhookEvents
-     */
-    public function availableEvents(): JsonResponse
+    public function events(): JsonResponse
     {
         return response()->json([
-            'data' => collect(Webhook::AVAILABLE_EVENTS)->map(function ($event) {
-                [$resource, $action] = explode('.', $event);
-
-                return [
-                    'event' => $event,
-                    'resource' => $resource,
-                    'action' => $action,
-                    'description' => $this->getEventDescription($event),
-                ];
-            })->values(),
+            'data' => Webhook::EVENTS,
         ]);
     }
 
     /**
-     * Get human-readable description for event types.
+     * Check if user has access to organization
      */
-    private function getEventDescription(string $event): string
+    protected function userHasAccessToOrganization(string $userId, string $organizationId): bool
     {
-        return match ($event) {
-            'time_entry.created' => 'Triggered when a new time entry is created',
-            'time_entry.updated' => 'Triggered when a time entry is modified',
-            'time_entry.deleted' => 'Triggered when a time entry is deleted',
-            'project.created' => 'Triggered when a new project is created',
-            'project.updated' => 'Triggered when a project is modified',
-            'project.archived' => 'Triggered when a project is archived',
-            'invoice.created' => 'Triggered when a new invoice is generated',
-            'invoice.sent' => 'Triggered when an invoice is sent to a client',
-            'invoice.paid' => 'Triggered when an invoice is marked as paid',
-            'invoice.overdue' => 'Triggered when an invoice becomes overdue',
-            'payment.received' => 'Triggered when a payment is successfully processed',
-            'payment.refunded' => 'Triggered when a payment is refunded',
-            'payment.failed' => 'Triggered when a payment attempt fails',
-            'member.added' => 'Triggered when a new team member is added',
-            'member.removed' => 'Triggered when a team member is removed',
-            'member.role_changed' => 'Triggered when a member\'s role is updated',
-            default => 'Unknown event',
-        };
+        return \App\Models\Member::where('user_id', $userId)
+            ->where('organization_id', $organizationId)
+            ->exists();
     }
 }

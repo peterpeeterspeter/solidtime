@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\ActivitySnapshotController;
+use App\Http\Controllers\Api\V1\ApiKeyController;
 use App\Http\Controllers\Api\V1\ApiTokenController;
 use App\Http\Controllers\Api\V1\ChartController;
 use App\Http\Controllers\Api\V1\FocusSessionController;
@@ -32,6 +33,7 @@ use App\Http\Controllers\Api\V1\UserMembershipController;
 use App\Http\Controllers\Api\V1\UserPrivacySettingController;
 use App\Http\Controllers\Api\V1\UserTimeEntryController;
 use App\Http\Controllers\Api\V1\WebhookController;
+use App\Http\Controllers\Api\V1\WebhookDeliveryController;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -96,16 +98,32 @@ Route::prefix('v1')->name('v1.')->group(static function (): void {
             Route::get('/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey'])->name('vapid-public-key');
         });
 
-        // Webhook routes
+        // API Keys routes (n8n integration)
+        Route::name('api-keys.')->group(static function (): void {
+            Route::get('/api-keys', [ApiKeyController::class, 'index'])->name('index');
+            Route::get('/api-keys/scopes', [ApiKeyController::class, 'scopes'])->name('scopes');
+            Route::get('/api-keys/{apiKey}', [ApiKeyController::class, 'show'])->name('show');
+            Route::post('/api-keys', [ApiKeyController::class, 'store'])->name('store');
+            Route::put('/api-keys/{apiKey}', [ApiKeyController::class, 'update'])->name('update');
+            Route::delete('/api-keys/{apiKey}', [ApiKeyController::class, 'destroy'])->name('destroy');
+        });
+
+        // Webhook routes (n8n integration)
         Route::name('webhooks.')->group(static function (): void {
             Route::get('/webhooks', [WebhookController::class, 'index'])->name('index');
-            Route::get('/webhooks/available-events', [WebhookController::class, 'availableEvents'])->name('available-events');
+            Route::get('/webhooks/events', [WebhookController::class, 'events'])->name('events');
             Route::get('/webhooks/{webhook}', [WebhookController::class, 'show'])->name('show');
             Route::post('/webhooks', [WebhookController::class, 'store'])->name('store');
             Route::put('/webhooks/{webhook}', [WebhookController::class, 'update'])->name('update');
             Route::delete('/webhooks/{webhook}', [WebhookController::class, 'destroy'])->name('destroy');
-            Route::get('/webhooks/{webhook}/deliveries', [WebhookController::class, 'deliveries'])->name('deliveries');
             Route::post('/webhooks/{webhook}/test', [WebhookController::class, 'test'])->name('test');
+        });
+
+        // Webhook Delivery routes (n8n integration)
+        Route::name('webhook-deliveries.')->group(static function (): void {
+            Route::get('/webhooks/{webhook}/deliveries', [WebhookDeliveryController::class, 'index'])->name('index');
+            Route::get('/webhooks/{webhook}/deliveries/{delivery}', [WebhookDeliveryController::class, 'show'])->name('show');
+            Route::post('/webhooks/{webhook}/deliveries/{delivery}/retry', [WebhookDeliveryController::class, 'retry'])->name('retry');
         });
 
         // Activity Snapshots routes (desktop app)

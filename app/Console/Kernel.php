@@ -57,6 +57,10 @@ class Kernel extends ConsoleKernel
             ->when(fn (): bool => config('scheduling.tasks.focus_sessions_detect_daily'))
             ->daily()
             ->at('03:00');
+
+        $schedule->command('webhooks:process-retries')
+            ->when(fn (): bool => config('scheduling.tasks.webhooks_process_retries'))
+            ->everyFiveMinutes();
     }
 
     /**

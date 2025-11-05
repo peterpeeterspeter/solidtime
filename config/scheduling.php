@@ -12,5 +12,6 @@ return [
         'self_hosting_database_consistency' => (bool) env('SCHEDULING_TASK_SELF_HOSTING_DATABASE_CONSISTENCY', false),
         'activities_cleanup' => (bool) env('SCHEDULING_TASK_ACTIVITIES_CLEANUP', true),
         'focus_sessions_detect_daily' => (bool) env('SCHEDULING_TASK_FOCUS_SESSIONS_DETECT_DAILY', true),
+        'webhooks_process_retries' => (bool) env('SCHEDULING_TASK_WEBHOOKS_PROCESS_RETRIES', true),
     ],
 ];
