@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\MemberController;
 use App\Http\Controllers\Api\V1\OrganizationController;
 use App\Http\Controllers\Api\V1\PaymentController;
 use App\Http\Controllers\Api\V1\PaymentGatewayConnectionController;
+use App\Http\Controllers\Api\V1\PayrollController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\ProjectMemberController;
 use App\Http\Controllers\Api\V1\Public\ReportController as PublicReportController;
@@ -244,6 +245,17 @@ Route::prefix('v1')->name('v1.')->group(static function (): void {
             Route::delete('/recurring-schedules/{schedule}', [RecurringInvoiceScheduleController::class, 'destroy'])->name('destroy');
             Route::post('/recurring-schedules/{schedule}/pause', [RecurringInvoiceScheduleController::class, 'pause'])->name('pause')->middleware('check-organization-blocked');
             Route::post('/recurring-schedules/{schedule}/resume', [RecurringInvoiceScheduleController::class, 'resume'])->name('resume')->middleware('check-organization-blocked');
+        });
+
+        // Payroll routes (organization-scoped)
+        Route::name('payrolls.')->prefix('/organizations/{organization}')->group(static function (): void {
+            Route::get('/payrolls', [PayrollController::class, 'index'])->name('index');
+            Route::get('/payrolls/summary', [PayrollController::class, 'summary'])->name('summary');
+            Route::get('/payrolls/{payroll}', [PayrollController::class, 'show'])->name('show');
+            Route::post('/payrolls', [PayrollController::class, 'store'])->name('store')->middleware('check-organization-blocked');
+            Route::post('/payrolls/{payroll}/approve', [PayrollController::class, 'approve'])->name('approve')->middleware('check-organization-blocked');
+            Route::post('/payrolls/{payroll}/mark-as-paid', [PayrollController::class, 'markAsPaid'])->name('mark-as-paid')->middleware('check-organization-blocked');
+            Route::delete('/payrolls/{payroll}', [PayrollController::class, 'destroy'])->name('destroy');
         });
     });
 
