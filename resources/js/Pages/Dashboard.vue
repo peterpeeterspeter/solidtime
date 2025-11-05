@@ -6,8 +6,11 @@ import LastSevenDaysCard from '@/Components/Dashboard/LastSevenDaysCard.vue';
 import TeamActivityCard from '@/Components/Dashboard/TeamActivityCard.vue';
 import ThisWeekOverview from '@/Components/Dashboard/ThisWeekOverview.vue';
 import ActivityGraphCard from '@/Components/Dashboard/ActivityGraphCard.vue';
+import OutstandingInvoicesCard from '@/Components/Dashboard/OutstandingInvoicesCard.vue';
+import InvoiceStatsCard from '@/Components/Dashboard/InvoiceStatsCard.vue';
 import MainContainer from '@/packages/ui/src/MainContainer.vue';
-import { canViewMembers } from '@/utils/permissions';
+import { canViewMembers, canViewInvoices } from '@/utils/permissions';
+import { isInvoicingActivated } from '@/utils/billing';
 import { useQueryClient } from '@tanstack/vue-query';
 
 const queryClient = useQueryClient();
@@ -24,6 +27,8 @@ const refreshDashboardData = () => {
     queryClient.invalidateQueries({ queryKey: ['totalWeeklyBillableAmount'] });
     queryClient.invalidateQueries({ queryKey: ['weeklyHistory'] });
     queryClient.invalidateQueries({ queryKey: ['timeEntries'] });
+    queryClient.invalidateQueries({ queryKey: ['outstandingInvoices'] });
+    queryClient.invalidateQueries({ queryKey: ['invoiceStats'] });
 };
 </script>
 
@@ -41,6 +46,14 @@ const refreshDashboardData = () => {
             <ActivityGraphCard></ActivityGraphCard>
             <TeamActivityCard v-if="canViewMembers()" class="flex lg:hidden xl:flex">
             </TeamActivityCard>
+            <!-- Invoice Cards (when invoicing is activated) -->
+            <OutstandingInvoicesCard
+                v-if="isInvoicingActivated() && canViewInvoices()"
+                class="md:col-span-2 lg:col-span-1">
+            </OutstandingInvoicesCard>
+            <InvoiceStatsCard
+                v-if="isInvoicingActivated() && canViewInvoices()">
+            </InvoiceStatsCard>
         </MainContainer>
         <MainContainer class="py-5">
             <ThisWeekOverview></ThisWeekOverview>
