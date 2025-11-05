@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Http\Controllers\Api\V1\ActivitySnapshotController;
 use App\Http\Controllers\Api\V1\ApiTokenController;
 use App\Http\Controllers\Api\V1\ChartController;
 use App\Http\Controllers\Api\V1\ClientController;
@@ -103,6 +104,17 @@ Route::prefix('v1')->name('v1.')->group(static function (): void {
             Route::delete('/webhooks/{webhook}', [WebhookController::class, 'destroy'])->name('destroy');
             Route::get('/webhooks/{webhook}/deliveries', [WebhookController::class, 'deliveries'])->name('deliveries');
             Route::post('/webhooks/{webhook}/test', [WebhookController::class, 'test'])->name('test');
+        });
+
+        // Activity Snapshots routes (desktop app)
+        Route::name('activity-snapshots.')->group(static function (): void {
+            Route::post('/activity-snapshots', [ActivitySnapshotController::class, 'store'])->name('store');
+            Route::get('/activity-snapshots/daily-summary', [ActivitySnapshotController::class, 'dailySummary'])->name('daily-summary');
+            Route::get('/activity-snapshots/weekly-summary', [ActivitySnapshotController::class, 'weeklySummary'])->name('weekly-summary');
+            Route::get('/activity-snapshots/hourly', [ActivitySnapshotController::class, 'hourly'])->name('hourly');
+            Route::get('/activity-snapshots/focus-sessions', [ActivitySnapshotController::class, 'focusSessions'])->name('focus-sessions');
+            Route::get('/activity-snapshots/timeline', [ActivitySnapshotController::class, 'timeline'])->name('timeline');
+            Route::delete('/activity-snapshots', [ActivitySnapshotController::class, 'destroy'])->name('destroy');
         });
 
         // User Member routes

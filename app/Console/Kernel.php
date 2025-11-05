@@ -47,6 +47,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('self-host:database-consistency')
             ->when(fn (): bool => config('scheduling.tasks.self_hosting_database_consistency'))
             ->everySixHours();
+
+        $schedule->command('activities:cleanup --days=90')
+            ->when(fn (): bool => config('scheduling.tasks.activities_cleanup'))
+            ->daily()
+            ->at('02:00');
     }
 
     /**
