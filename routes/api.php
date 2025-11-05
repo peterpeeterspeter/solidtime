@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Http\Controllers\Api\V1\ActivitySnapshotController;
 use App\Http\Controllers\Api\V1\ApiTokenController;
 use App\Http\Controllers\Api\V1\ChartController;
+use App\Http\Controllers\Api\V1\FocusSessionController;
 use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\CurrencyController;
 use App\Http\Controllers\Api\V1\ExportController;
@@ -115,6 +116,20 @@ Route::prefix('v1')->name('v1.')->group(static function (): void {
             Route::get('/activity-snapshots/focus-sessions', [ActivitySnapshotController::class, 'focusSessions'])->name('focus-sessions');
             Route::get('/activity-snapshots/timeline', [ActivitySnapshotController::class, 'timeline'])->name('timeline');
             Route::delete('/activity-snapshots', [ActivitySnapshotController::class, 'destroy'])->name('destroy');
+        });
+
+        // Focus Sessions routes (analytics)
+        Route::name('focus-sessions.')->group(static function (): void {
+            Route::get('/focus-sessions', [FocusSessionController::class, 'index'])->name('index');
+            Route::get('/focus-sessions/stats', [FocusSessionController::class, 'stats'])->name('stats');
+            Route::get('/focus-sessions/heatmap', [FocusSessionController::class, 'heatmap'])->name('heatmap');
+            Route::get('/focus-sessions/streaks', [FocusSessionController::class, 'streaks'])->name('streaks');
+            Route::get('/focus-sessions/daily-summary', [FocusSessionController::class, 'dailySummary'])->name('daily-summary');
+            Route::get('/focus-sessions/productive-hours', [FocusSessionController::class, 'productiveHours'])->name('productive-hours');
+            Route::post('/focus-sessions/detect', [FocusSessionController::class, 'detect'])->name('detect');
+            Route::get('/focus-sessions/{id}', [FocusSessionController::class, 'show'])->name('show');
+            Route::delete('/focus-sessions/{id}', [FocusSessionController::class, 'destroy'])->name('destroy');
+            Route::delete('/focus-sessions', [FocusSessionController::class, 'destroyRange'])->name('destroy-range');
         });
 
         // User Member routes

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\AppActivity;
+use App\Models\FocusSession;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
 
@@ -300,5 +301,162 @@ class ActivityAggregationService
         $score = ($durationScore * 0.5) + ($switchScore * 0.3) + ($appScore * 0.2);
 
         return (int) round($score);
+    }
+
+    /**
+     * Detect and persist focus sessions for a user on a specific date
+     */
+    public function detectAndPersistFocusSessions(string $userId, string $organizationId, Carbon $date): Collection
+    {
+        // Delete existing focus sessions for this date to avoid duplicates
+        FocusSession::forUser($userId)
+            ->whereDate('start_time', $date)
+            ->delete();
+
+        // Detect sessions
+        $detectedSessions = $this->detectFocusSessions($userId, $date);
+
+        $persistedSessions = collect();
+
+        foreach ($detectedSessions as $session) {
+            $uniqueApps = array_unique($session['apps']);
+            $appCounts = array_count_values($session['apps']);
+            arsort($appCounts);
+            $primaryApp = array_key_first($appCounts);
+
+            $focusSession = FocusSession::create([
+                'user_id' => $userId,
+                'organization_id' => $organizationId,
+                'start_time' => $session['start'],
+                'end_time' => $session['end'],
+                'duration_minutes' => (int) $session['duration_minutes'],
+                'app_switches' => $session['app_switches'],
+                'unique_apps_count' => count($uniqueApps),
+                'interruptions_count' => $session['app_switches'], // Same as app switches for now
+                'focus_score' => $session['focus_score'],
+                'apps_used' => $uniqueApps,
+                'primary_app' => $primaryApp,
+            ]);
+
+            $persistedSessions->push($focusSession);
+        }
+
+        return $persistedSessions;
+    }
+
+    /**
+     * Get focus session statistics for a date range
+     */
+    public function getFocusStats(string $userId, Carbon $startDate, Carbon $endDate): array
+    {
+        $sessions = FocusSession::forUser($userId)
+            ->forDateRange($startDate, $endDate)
+            ->get();
+
+        if ($sessions->isEmpty()) {
+            return [
+                'total_sessions' => 0,
+                'total_focus_minutes' => 0,
+                'average_duration_minutes' => 0,
+                'average_focus_score' => 0,
+                'deep_work_sessions' => 0,
+                'top_focus_apps' => [],
+            ];
+        }
+
+        $totalMinutes = $sessions->sum('duration_minutes');
+        $deepWorkCount = $sessions->filter->isDeepWork()->count();
+
+        // Top focus apps (based on primary app in sessions)
+        $appCounts = $sessions->groupBy('primary_app')
+            ->map->count()
+            ->sortDesc()
+            ->take(5)
+            ->map(fn ($count, $app) => [
+                'app_name' => $app,
+                'session_count' => $count,
+            ])
+            ->values()
+            ->toArray();
+
+        return [
+            'total_sessions' => $sessions->count(),
+            'total_focus_minutes' => $totalMinutes,
+            'total_focus_hours' => round($totalMinutes / 60, 1),
+            'average_duration_minutes' => round($totalMinutes / $sessions->count(), 1),
+            'average_focus_score' => round($sessions->avg('focus_score'), 1),
+            'deep_work_sessions' => $deepWorkCount,
+            'deep_work_percentage' => round(($deepWorkCount / $sessions->count()) * 100, 1),
+            'top_focus_apps' => $appCounts,
+        ];
+    }
+
+    /**
+     * Get focus session heatmap data for visualization
+     *
+     * Returns array of [date => hour => focus_score]
+     */
+    public function getFocusHeatmap(string $userId, Carbon $startDate, Carbon $endDate): array
+    {
+        $sessions = FocusSession::forUser($userId)
+            ->forDateRange($startDate, $endDate)
+            ->get();
+
+        $heatmap = [];
+
+        foreach ($sessions as $session) {
+            $date = $session->start_time->format('Y-m-d');
+            $hour = (int) $session->start_time->format('H');
+
+            if (!isset($heatmap[$date])) {
+                $heatmap[$date] = array_fill(0, 24, null);
+            }
+
+            // Take the highest focus score if multiple sessions in same hour
+            if ($heatmap[$date][$hour] === null || $session->focus_score > $heatmap[$date][$hour]) {
+                $heatmap[$date][$hour] = $session->focus_score;
+            }
+        }
+
+        return $heatmap;
+    }
+
+    /**
+     * Get focus session streaks
+     */
+    public function getFocusStreaks(string $userId, Carbon $startDate): array
+    {
+        $sessions = FocusSession::forUser($userId)
+            ->where('start_time', '>=', $startDate)
+            ->minimumDuration(20)
+            ->ordered()
+            ->get();
+
+        $currentStreak = 0;
+        $longestStreak = 0;
+        $lastDate = null;
+
+        foreach ($sessions as $session) {
+            $sessionDate = $session->start_time->format('Y-m-d');
+
+            if ($lastDate === null || $session->start_time->diffInDays($lastDate) <= 1) {
+                if ($lastDate === null || $sessionDate !== $lastDate->format('Y-m-d')) {
+                    $currentStreak++;
+                }
+            } else {
+                // Streak broken
+                $longestStreak = max($longestStreak, $currentStreak);
+                $currentStreak = 1;
+            }
+
+            $lastDate = $session->start_time;
+        }
+
+        $longestStreak = max($longestStreak, $currentStreak);
+
+        return [
+            'current_streak' => $currentStreak,
+            'longest_streak' => $longestStreak,
+        ];
     }
 }
