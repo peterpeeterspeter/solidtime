@@ -1,7 +1,7 @@
 {
     "name": "solidtime-io/solidtime",
     "type": "project",
-    "description": "An open-source time-tracking app",
+    "description": "Timeclocker - Modern, EU-based time tracking SaaS for freelancers and small teams",
     "keywords": [],
     "license": "AGPL-3.0-or-later",
     "require": {

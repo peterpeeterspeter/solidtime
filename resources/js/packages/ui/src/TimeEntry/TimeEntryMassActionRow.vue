@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import MainContainer from '@/packages/ui/src/MainContainer.vue';
-import { PencilSquareIcon, TrashIcon } from '@heroicons/vue/20/solid';
+import { PencilSquareIcon, TrashIcon, DocumentTextIcon } from '@heroicons/vue/20/solid';
 import TimeEntryMassUpdateModal from '@/packages/ui/src/TimeEntry/TimeEntryMassUpdateModal.vue';
 import type {
     Client,
@@ -19,6 +19,8 @@ import { Checkbox, InputLabel } from '@/packages/ui/src';
 const props = defineProps<{
     selectedTimeEntries: TimeEntry[];
     deleteSelected: () => void;
+    createInvoice?: () => void;
+    showInvoiceButton?: boolean;
     class?: string;
     allSelected: boolean;
     projects: Project[];
@@ -86,6 +88,14 @@ const showMassUpdateModal = ref(false);
             @click="showMassUpdateModal = true">
             <PencilSquareIcon class="w-4"></PencilSquareIcon>
             <span> Edit </span>
+        </button>
+        <button
+            v-if="selectedTimeEntries.length && showInvoiceButton && createInvoice"
+            class="text-primary flex space-x-1 items-center hover:text-primary-hover transition focus-visible:ring-2 outline-0 focus-visible:ring-ring rounded h-full px-2"
+            title="Create invoice from selected billable entries"
+            @click="createInvoice">
+            <DocumentTextIcon class="w-4"></DocumentTextIcon>
+            <span> Create Invoice </span>
         </button>
         <button
             v-if="selectedTimeEntries.length"

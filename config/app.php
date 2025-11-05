@@ -24,7 +24,7 @@ return [
     |
     */
 
-    'name' => 'solidtime',
+    'name' => 'Timeclocker',
 
     'version' => env('APP_VERSION'),
 
@@ -113,6 +113,23 @@ return [
     */
 
     'fallback_locale' => 'en',
+
+    /*
+    |--------------------------------------------------------------------------
+    | Available Locales
+    |--------------------------------------------------------------------------
+    |
+    | List of all available locales/languages for Timeclocker.
+    | Users can switch between these languages in their profile settings.
+    |
+    */
+
+    'available_locales' => [
+        'en' => 'English',
+        'de' => 'Deutsch',
+        'nl' => 'Nederlands',
+        'fr' => 'Français',
+    ],
 
     /*
     |--------------------------------------------------------------------------

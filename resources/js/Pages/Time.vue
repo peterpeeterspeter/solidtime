@@ -25,8 +25,9 @@ import { useClientsStore } from '@/utils/useClients';
 import { getOrganizationCurrencyString } from '@/utils/money';
 import TimeEntryMassActionRow from '@/packages/ui/src/TimeEntry/TimeEntryMassActionRow.vue';
 import type { UpdateMultipleTimeEntriesChangeset } from '@/packages/api/src';
-import { isAllowedToPerformPremiumAction } from '@/utils/billing';
-import { canCreateProjects } from '@/utils/permissions';
+import { isAllowedToPerformPremiumAction, isInvoicingActivated } from '@/utils/billing';
+import { canCreateProjects, canViewInvoices } from '@/utils/permissions';
+import { router } from '@inertiajs/vue3';
 
 const timeEntriesStore = useTimeEntriesStore();
 const { timeEntries, allTimeEntriesLoaded } = storeToRefs(timeEntriesStore);
@@ -98,6 +99,23 @@ function deleteSelected() {
     deleteTimeEntries(selectedTimeEntries.value);
     selectedTimeEntries.value = [];
 }
+
+// Invoice creation from selected time entries
+function createInvoiceFromSelected() {
+    // Filter to only billable entries
+    const billableEntries = selectedTimeEntries.value.filter((entry) => entry.billable);
+
+    if (billableEntries.length === 0) {
+        alert('Please select at least one billable time entry to create an invoice.');
+        return;
+    }
+
+    // Navigate to invoice creation page with selected entries
+    const entryIds = billableEntries.map((entry) => entry.id).join(',');
+    router.visit(`/invoices/create?time_entries=${entryIds}`);
+}
+
+const showInvoiceButton = isInvoicingActivated() && canViewInvoices();
 </script>
 
 <template>
@@ -111,6 +129,8 @@ function deleteSelected() {
             :can-create-project="canCreateProjects()"
             :all-selected="selectedTimeEntries.length === timeEntries.length"
             :delete-selected="deleteSelected"
+            :create-invoice="createInvoiceFromSelected"
+            :show-invoice-button="showInvoiceButton"
             :projects="projects"
             :tasks="tasks"
             :tags="tags"

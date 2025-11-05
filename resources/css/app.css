@@ -112,17 +112,17 @@
     --theme-color-row-separator-background: var(--theme-color-default-background-separator);
     --theme-color-row-border: var(--theme-color-card-border);
 
-    --color-accent-50: 240, 249, 255;    /* sky-50 */
-    --color-accent-100: 224, 242, 254;   /* sky-100 */
-    --color-accent-200: 186, 230, 253;   /* sky-200 */
-    --color-accent-300: 125, 211, 252;   /* sky-300 */
-    --color-accent-400: 56, 189, 248;    /* sky-400 */
-    --color-accent-500: 14, 165, 233;    /* sky-500 */
-    --color-accent-600: 2, 132, 199;     /* sky-600 */
-    --color-accent-700: 3, 105, 161;     /* sky-700 */
-    --color-accent-800: 7, 89, 133;      /* sky-800 */
-    --color-accent-900: 12, 74, 110;     /* sky-900 */
-    --color-accent-950: 8, 47, 73;       /* sky-950 */
+    --color-accent-50: 236, 254, 255;    /* cyan-50 - Timeclocker light */
+    --color-accent-100: 207, 250, 254;   /* cyan-100 */
+    --color-accent-200: 165, 243, 252;   /* cyan-200 */
+    --color-accent-300: 103, 232, 249;   /* cyan-300 */
+    --color-accent-400: 34, 211, 238;    /* cyan-400 */
+    --color-accent-500: 6, 182, 212;     /* cyan-500 - Timeclocker primary */
+    --color-accent-600: 8, 145, 178;     /* cyan-600 */
+    --color-accent-700: 14, 116, 144;    /* cyan-700 */
+    --color-accent-800: 21, 94, 117;     /* cyan-800 */
+    --color-accent-900: 22, 78, 99;      /* cyan-900 - Timeclocker dark */
+    --color-accent-950: 8, 51, 68;       /* cyan-950 */
 
     --theme-button-secondary-background: var(--theme-color-card-background);
     --theme-button-secondary-background-active: var(--theme-color-card-background-active);

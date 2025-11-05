@@ -14,6 +14,7 @@ use App\Http\Controllers\Api\V1\OrganizationController;
 use App\Http\Controllers\Api\V1\ProjectController;
 use App\Http\Controllers\Api\V1\ProjectMemberController;
 use App\Http\Controllers\Api\V1\Public\ReportController as PublicReportController;
+use App\Http\Controllers\Api\V1\PushSubscriptionController;
 use App\Http\Controllers\Api\V1\ReportController;
 use App\Http\Controllers\Api\V1\TagController;
 use App\Http\Controllers\Api\V1\TaskController;
@@ -67,6 +68,13 @@ Route::prefix('v1')->name('v1.')->group(static function (): void {
             Route::post('/users/me/api-tokens', [ApiTokenController::class, 'store'])->name('store');
             Route::post('/users/me/api-tokens/{apiToken}/revoke', [ApiTokenController::class, 'revoke'])->name('revoke');
             Route::delete('/users/me/api-tokens/{apiToken}', [ApiTokenController::class, 'destroy'])->name('destroy');
+        });
+
+        // Push subscription routes
+        Route::name('push-subscriptions.')->group(static function (): void {
+            Route::post('/push-subscriptions', [PushSubscriptionController::class, 'store'])->name('store');
+            Route::delete('/push-subscriptions', [PushSubscriptionController::class, 'destroy'])->name('destroy');
+            Route::get('/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey'])->name('vapid-public-key');
         });
 
         // User Member routes
