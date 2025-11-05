@@ -15,7 +15,7 @@ return new class extends Migration
     {
         Schema::create('push_subscriptions', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->onDelete('cascade');
+            $table->foreignUuid('user_id')->constrained()->onDelete('cascade');
             $table->string('endpoint', 500)->unique();
             $table->text('p256dh_key');
             $table->text('auth_key');
