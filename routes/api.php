@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\ActivitySnapshotController;
 use App\Http\Controllers\Api\V1\ApiTokenController;
 use App\Http\Controllers\Api\V1\ChartController;
 use App\Http\Controllers\Api\V1\FocusSessionController;
+use App\Http\Controllers\Api\V1\TeamFocusAnalyticsController;
 use App\Http\Controllers\Api\V1\ClientController;
 use App\Http\Controllers\Api\V1\CurrencyController;
 use App\Http\Controllers\Api\V1\ExportController;
@@ -130,6 +131,16 @@ Route::prefix('v1')->name('v1.')->group(static function (): void {
             Route::get('/focus-sessions/{id}', [FocusSessionController::class, 'show'])->name('show');
             Route::delete('/focus-sessions/{id}', [FocusSessionController::class, 'destroy'])->name('destroy');
             Route::delete('/focus-sessions', [FocusSessionController::class, 'destroyRange'])->name('destroy-range');
+        });
+
+        // Team Focus Analytics routes (organization-level)
+        Route::name('team-analytics.')->prefix('/organizations/{organization}')->group(static function (): void {
+            Route::get('/team-analytics/stats', [TeamFocusAnalyticsController::class, 'teamStats'])->name('stats');
+            Route::get('/team-analytics/rankings', [TeamFocusAnalyticsController::class, 'memberRankings'])->name('rankings');
+            Route::get('/team-analytics/heatmap', [TeamFocusAnalyticsController::class, 'teamHeatmap'])->name('heatmap');
+            Route::get('/team-analytics/productive-hours', [TeamFocusAnalyticsController::class, 'teamProductiveHours'])->name('productive-hours');
+            Route::get('/team-analytics/distribution', [TeamFocusAnalyticsController::class, 'teamFocusDistribution'])->name('distribution');
+            Route::get('/team-analytics/insights', [TeamFocusAnalyticsController::class, 'teamInsights'])->name('insights');
         });
 
         // User Member routes
