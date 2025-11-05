@@ -52,6 +52,11 @@ class Kernel extends ConsoleKernel
             ->when(fn (): bool => config('scheduling.tasks.activities_cleanup'))
             ->daily()
             ->at('02:00');
+
+        $schedule->command('focus-sessions:detect-daily')
+            ->when(fn (): bool => config('scheduling.tasks.focus_sessions_detect_daily'))
+            ->daily()
+            ->at('03:00');
     }
 
     /**
