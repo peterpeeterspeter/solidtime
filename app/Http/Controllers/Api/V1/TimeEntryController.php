@@ -36,6 +36,7 @@ use App\Service\TimeEntryAggregationService;
 use App\Service\TimeEntryFilter;
 use App\Service\TimeEntryService;
 use App\Service\TimezoneService;
+use App\Services\WebhookService;
 use Gotenberg\Exceptions\GotenbergApiErrored;
 use Gotenberg\Exceptions\NoOutputFileInResponse;
 use Gotenberg\Gotenberg;
@@ -58,6 +59,11 @@ use Spatie\TemporaryDirectory\TemporaryDirectory;
 
 class TimeEntryController extends Controller
 {
+    public function __construct(
+        private readonly WebhookService $webhookService
+    ) {
+    }
+
     private function assertNoOverlap(Organization $organization, Member $member, \Illuminate\Support\Carbon $start, ?\Illuminate\Support\Carbon $end, ?TimeEntry $exclude = null): void
     {
         if (! $organization->prevent_overlapping_time_entries) {
@@ -606,6 +612,20 @@ class TimeEntryController extends Controller
         $timeEntry->setComputedAttributeValue('billable_rate');
         $timeEntry->save();
 
+        // Dispatch webhook event
+        $this->webhookService->dispatch('time_entry.created', [
+            'id' => $timeEntry->id,
+            'description' => $timeEntry->description,
+            'start' => $timeEntry->start?->toIso8601String(),
+            'end' => $timeEntry->end?->toIso8601String(),
+            'duration_seconds' => $timeEntry->getDurationInSeconds(),
+            'billable' => $timeEntry->billable,
+            'user_id' => $timeEntry->user_id,
+            'project_id' => $timeEntry->project_id,
+            'task_id' => $timeEntry->task_id,
+            'organization_id' => $timeEntry->organization_id,
+        ]);
+
         if ($project !== null) {
             RecalculateSpentTimeForProject::dispatch($project);
         }
@@ -662,6 +682,20 @@ class TimeEntryController extends Controller
         $timeEntry->description = $request->input('description', $timeEntry->description) ?? '';
         $timeEntry->setComputedAttributeValue('billable_rate');
         $timeEntry->save();
+
+        // Dispatch webhook event
+        $this->webhookService->dispatch('time_entry.updated', [
+            'id' => $timeEntry->id,
+            'description' => $timeEntry->description,
+            'start' => $timeEntry->start?->toIso8601String(),
+            'end' => $timeEntry->end?->toIso8601String(),
+            'duration_seconds' => $timeEntry->getDurationInSeconds(),
+            'billable' => $timeEntry->billable,
+            'user_id' => $timeEntry->user_id,
+            'project_id' => $timeEntry->project_id,
+            'task_id' => $timeEntry->task_id,
+            'organization_id' => $timeEntry->organization_id,
+        ]);
 
         if ($oldProject !== null) {
             RecalculateSpentTimeForProject::dispatch($oldProject);
@@ -797,7 +831,21 @@ class TimeEntryController extends Controller
         $project = $timeEntry->project;
         $task = $timeEntry->task;
 
+        // Capture data before deletion for webhook
+        $webhookData = [
+            'id' => $timeEntry->id,
+            'description' => $timeEntry->description,
+            'start' => $timeEntry->start?->toIso8601String(),
+            'end' => $timeEntry->end?->toIso8601String(),
+            'user_id' => $timeEntry->user_id,
+            'project_id' => $timeEntry->project_id,
+            'organization_id' => $timeEntry->organization_id,
+        ];
+
         $timeEntry->delete();
+
+        // Dispatch webhook event
+        $this->webhookService->dispatch('time_entry.deleted', $webhookData);
 
         if ($project !== null) {
             RecalculateSpentTimeForProject::dispatch($project);
