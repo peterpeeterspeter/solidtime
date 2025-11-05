@@ -1,0 +1,37 @@
+<template>
+    <button
+        type="button"
+        role="switch"
+        :aria-checked="modelValue"
+        :disabled="disabled"
+        @click="toggle"
+        class="relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-cyan-600 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+        :class="modelValue ? 'bg-cyan-600' : 'bg-gray-200 dark:bg-gray-700'"
+    >
+        <span
+            :aria-hidden="true"
+            class="pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"
+            :class="modelValue ? 'translate-x-5' : 'translate-x-0'"
+        ></span>
+    </button>
+</template>
+
+<script setup lang="ts">
+defineProps<{
+    modelValue: boolean;
+    disabled?: boolean;
+}>();
+
+const emit = defineEmits<{
+    (e: 'update:modelValue', value: boolean): void;
+}>();
+
+function toggle() {
+    emit('update:modelValue', !props.modelValue);
+}
+
+const props = defineProps<{
+    modelValue: boolean;
+    disabled?: boolean;
+}>();
+</script>
