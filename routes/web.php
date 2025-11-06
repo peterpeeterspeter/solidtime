@@ -87,4 +87,20 @@ Route::middleware([
         return Inertia::render('Import');
     })->name('import');
 
+    Route::get('/automation', function () {
+        return Inertia::render('Automation');
+    })->name('automation');
+
+    Route::get('/invoices', function () {
+        return Inertia::render('Invoices');
+    })->name('invoices');
+
+    Route::get('/payroll', function () {
+        return Inertia::render('Payroll');
+    })->name('payroll');
+
+    Route::get('/focus-sessions', function () {
+        return Inertia::render('FocusSessions');
+    })->name('focus-sessions');
+
 });

@@ -17,6 +17,9 @@ import {
     UserGroupIcon,
     XMarkIcon,
     DocumentTextIcon,
+    BoltIcon,
+    BanknotesIcon,
+    FireIcon,
 } from '@heroicons/vue/20/solid';
 import NavigationSidebarItem from '@/Components/NavigationSidebarItem.vue';
 import UserSettingsIcon from '@/Components/UserSettingsIcon.vue';
@@ -208,6 +211,35 @@ const page = usePage<{
                                 href="/invoices"></NavigationSidebarItem>
                         </ul>
                     </nav>
+
+                    <div class="text-text-tertiary text-xs font-semibold pt-5 pb-1.5">Advanced</div>
+
+                    <nav>
+                        <ul>
+                            <NavigationSidebarItem
+                                title="Automation"
+                                :icon="BoltIcon"
+                                :current="route().current('automation')"
+                                :href="route('automation')"></NavigationSidebarItem>
+                            <NavigationSidebarItem
+                                v-if="isInvoicingActivated() || !isBillingActivated()"
+                                title="Invoices"
+                                :icon="DocumentTextIcon"
+                                :current="route().current('invoices')"
+                                :href="route('invoices')"></NavigationSidebarItem>
+                            <NavigationSidebarItem
+                                title="Payroll"
+                                :icon="BanknotesIcon"
+                                :current="route().current('payroll')"
+                                :href="route('payroll')"></NavigationSidebarItem>
+                            <NavigationSidebarItem
+                                title="Focus Sessions"
+                                :icon="FireIcon"
+                                :current="route().current('focus-sessions')"
+                                :href="route('focus-sessions')"></NavigationSidebarItem>
+                        </ul>
+                    </nav>
+
                     <div
                         v-if="canUpdateOrganization()"
                         class="text-text-tertiary text-xs font-semibold pt-5 pb-1.5">
