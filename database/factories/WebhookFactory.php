@@ -1,145 +1,59 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Database\Factories;
 
-use App\Models\User;
 use App\Models\Webhook;
+use App\Models\User;
+use App\Models\Organization;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
-/**
- * @extends Factory<Webhook>
- */
 class WebhookFactory extends Factory
 {
     protected $model = Webhook::class;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
+            'id' => Str::uuid(),
             'user_id' => User::factory(),
-            'url' => 'https://example.com/webhooks/timeclocker',
-            'secret' => Str::random(64),
-            'events' => ['time_entry.created'],
+            'organization_id' => Organization::factory(),
+            'name' => $this->faker->words(3, true),
+            'description' => $this->faker->optional()->sentence(),
+            'url' => $this->faker->url(),
+            'secret' => Webhook::generateSecret(),
+            'events' => $this->faker->randomElements(
+                ['time_entry.started', 'time_entry.stopped', 'project.created', 'task.completed'],
+                $this->faker->numberBetween(1, 3)
+            ),
             'is_active' => true,
-            'delivery_success_count' => 0,
-            'delivery_failure_count' => 0,
+            'failure_count' => 0,
+            'verification_status' => $this->faker->randomElement(['pending', 'verified']),
+            'filters' => null,
+            'last_triggered_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
         ];
     }
 
-    /**
-     * Webhook subscribed to all events.
-     */
-    public function subscribedToAllEvents(): static
+    public function disabled(): self
     {
-        return $this->state([
-            'events' => Webhook::AVAILABLE_EVENTS,
-        ]);
-    }
-
-    /**
-     * Webhook subscribed to time entry events.
-     */
-    public function timeEntryEvents(): static
-    {
-        return $this->state([
-            'events' => [
-                'time_entry.created',
-                'time_entry.updated',
-                'time_entry.deleted',
-            ],
-        ]);
-    }
-
-    /**
-     * Webhook subscribed to invoice events.
-     */
-    public function invoiceEvents(): static
-    {
-        return $this->state([
-            'events' => [
-                'invoice.created',
-                'invoice.sent',
-                'invoice.paid',
-                'invoice.overdue',
-            ],
-        ]);
-    }
-
-    /**
-     * Webhook subscribed to payment events.
-     */
-    public function paymentEvents(): static
-    {
-        return $this->state([
-            'events' => [
-                'payment.received',
-                'payment.refunded',
-                'payment.failed',
-            ],
-        ]);
-    }
-
-    /**
-     * Webhook subscribed to team member events.
-     */
-    public function memberEvents(): static
-    {
-        return $this->state([
-            'events' => [
-                'member.added',
-                'member.removed',
-                'member.role_changed',
-            ],
-        ]);
-    }
-
-    /**
-     * Inactive webhook.
-     */
-    public function inactive(): static
-    {
-        return $this->state([
+        return $this->state(fn (array $attributes) => [
             'is_active' => false,
         ]);
     }
 
-    /**
-     * Webhook with many successful deliveries.
-     */
-    public function withSuccessfulDeliveries(int $count = 10): static
+    public function failing(): self
     {
-        return $this->state([
-            'delivery_success_count' => $count,
-            'last_delivery_at' => now(),
+        return $this->state(fn (array $attributes) => [
+            'failure_count' => $this->faker->numberBetween(5, 9),
         ]);
     }
 
-    /**
-     * Webhook with many failed deliveries.
-     */
-    public function withFailedDeliveries(int $count = 5): static
+    public function verified(): self
     {
-        return $this->state([
-            'delivery_failure_count' => $count,
-            'last_delivery_at' => now(),
-        ]);
-    }
-
-    /**
-     * Webhook for a specific user.
-     */
-    public function forUser(User $user): static
-    {
-        return $this->state([
-            'user_id' => $user->id,
+        return $this->state(fn (array $attributes) => [
+            'verification_status' => 'verified',
         ]);
     }
 }

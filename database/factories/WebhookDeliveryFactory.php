@@ -1,168 +1,80 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Database\Factories;
 
-use App\Models\Webhook;
 use App\Models\WebhookDelivery;
+use App\Models\Webhook;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
-/**
- * @extends Factory<WebhookDelivery>
- */
 class WebhookDeliveryFactory extends Factory
 {
     protected $model = WebhookDelivery::class;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
+            'id' => Str::uuid(),
             'webhook_id' => Webhook::factory(),
-            'event_type' => 'time_entry.created',
+            'delivery_id' => WebhookDelivery::generateDeliveryId(),
+            'event_type' => $this->faker->randomElement([
+                'time_entry.started',
+                'time_entry.stopped',
+                'project.created',
+                'task.completed'
+            ]),
             'payload' => [
-                'id' => $this->faker->uuid(),
-                'event' => 'time_entry.created',
-                'timestamp' => now()->toIso8601String(),
+                'event' => 'time_entry.started',
                 'data' => [
-                    'id' => $this->faker->uuid(),
-                    'description' => 'Test time entry',
-                    'start' => now()->subHours(2)->toIso8601String(),
-                    'end' => now()->toIso8601String(),
+                    'id' => Str::uuid(),
+                    'description' => $this->faker->sentence(),
                 ],
             ],
-            'attempt' => 1,
-            'response_status' => 200,
-            'response_body' => json_encode(['received' => true]),
-            'delivered_at' => now(),
+            'status' => 'pending',
+            'attempt_number' => 1,
+            'max_attempts' => 3,
+            'http_status_code' => null,
+            'response_body' => null,
+            'error_message' => null,
+            'duration_ms' => null,
+            'next_retry_at' => null,
+            'attempted_at' => now(),
+            'completed_at' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
         ];
     }
 
-    /**
-     * Successful delivery.
-     */
-    public function successful(): static
+    public function successful(): self
     {
-        return $this->state([
-            'response_status' => 200,
-            'response_body' => json_encode(['received' => true]),
-            'error_message' => null,
-            'delivered_at' => now(),
+        return $this->state(fn (array $attributes) => [
+            'status' => 'success',
+            'http_status_code' => 200,
+            'response_body' => json_encode(['success' => true]),
+            'duration_ms' => $this->faker->numberBetween(100, 2000),
+            'completed_at' => now(),
         ]);
     }
 
-    /**
-     * Failed delivery (4xx error).
-     */
-    public function failed(): static
+    public function failed(): self
     {
-        return $this->state([
-            'response_status' => 400,
-            'response_body' => json_encode(['error' => 'Bad Request']),
-            'error_message' => 'Invalid webhook payload',
-            'delivered_at' => now(),
+        return $this->state(fn (array $attributes) => [
+            'status' => 'failed',
+            'http_status_code' => 500,
+            'error_message' => 'Internal Server Error',
+            'response_body' => json_encode(['error' => 'Server error']),
+            'duration_ms' => $this->faker->numberBetween(5000, 10000),
+            'completed_at' => now(),
         ]);
     }
 
-    /**
-     * Failed delivery (5xx error).
-     */
-    public function serverError(): static
+    public function retrying(): self
     {
-        return $this->state([
-            'response_status' => 500,
-            'response_body' => json_encode(['error' => 'Internal Server Error']),
-            'error_message' => 'Server error occurred',
-            'delivered_at' => now(),
-        ]);
-    }
-
-    /**
-     * Network error (no response).
-     */
-    public function networkError(): static
-    {
-        return $this->state([
-            'response_status' => 0,
-            'response_body' => null,
+        return $this->state(fn (array $attributes) => [
+            'status' => 'retrying',
+            'attempt_number' => 2,
+            'next_retry_at' => now()->addMinutes(10),
             'error_message' => 'Connection timeout',
-            'delivered_at' => now(),
-        ]);
-    }
-
-    /**
-     * Retry attempt.
-     */
-    public function attempt(int $attemptNumber): static
-    {
-        return $this->state([
-            'attempt' => $attemptNumber,
-        ]);
-    }
-
-    /**
-     * Pending delivery (not yet delivered).
-     */
-    public function pending(): static
-    {
-        return $this->state([
-            'response_status' => null,
-            'response_body' => null,
-            'error_message' => null,
-            'delivered_at' => null,
-        ]);
-    }
-
-    /**
-     * For a specific event type.
-     */
-    public function forEvent(string $eventType): static
-    {
-        $data = match ($eventType) {
-            'invoice.sent' => [
-                'id' => $this->faker->uuid(),
-                'invoice_number' => 'INV-2025-001',
-                'amount' => 1500.00,
-            ],
-            'payment.received' => [
-                'id' => $this->faker->uuid(),
-                'amount' => 1500.00,
-                'currency' => 'USD',
-            ],
-            'member.added' => [
-                'id' => $this->faker->uuid(),
-                'user_id' => $this->faker->uuid(),
-                'role' => 'member',
-            ],
-            default => [
-                'id' => $this->faker->uuid(),
-                'description' => 'Test data',
-            ],
-        };
-
-        return $this->state([
-            'event_type' => $eventType,
-            'payload' => [
-                'id' => $this->faker->uuid(),
-                'event' => $eventType,
-                'timestamp' => now()->toIso8601String(),
-                'data' => $data,
-            ],
-        ]);
-    }
-
-    /**
-     * For a specific webhook.
-     */
-    public function forWebhook(Webhook $webhook): static
-    {
-        return $this->state([
-            'webhook_id' => $webhook->id,
         ]);
     }
 }
