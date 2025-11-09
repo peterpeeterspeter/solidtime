@@ -1,0 +1,13 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "vite",
+  "env": {
+    "VITE_SUPABASE_URL": "https://ambjsovdhizjxwhhnbtd.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFtYmpzb3ZkaGl6anh3aGhuYnRkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc2Mzc2NDYsImV4cCI6MjA2MzIxMzY0Nn0.3H8N2Fk22RAV1gHzDB5pCi9GokGwroG34v15I5Cq8_g",
+    "VITE_SUPABASE_FUNCTION_URL": "https://ambjsovdhizjxwhhnbtd.supabase.co/functions/v1",
+    "VITE_INTERNAL_FUNCTION_TOKEN": "13b5889f4d72a64297a264468914b8763e7de1260c5a1e1c3fdf088adbc4d670"
+  }
+}
